@@ -1,8 +1,8 @@
-// Veja utilizando as linhas comentadas.
+// See using the commented lines.
 
 function async() {
-    console.log('Começou!')
-    //console.log('Aguardando...')
+    console.log('Started!')
+    //console.log('Loading...')
     fetch ('https://jsonplaceholder.typicode.com/posts')
     .then((response) => {
         if(response.status == 200) {
@@ -13,9 +13,9 @@ function async() {
         console.log(json[0])
     })
     .then(() => {
-        console.log('Terminou.')
+        console.log('End.')
     })    
-    //console.log('Aguardando...')
+    //console.log('Loading...')
     
 }
 

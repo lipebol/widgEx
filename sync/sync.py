@@ -1,20 +1,20 @@
-# Veja utilizando as linhas comentadas.
+# See using the commented lines.
 
 from requests import get
 from json import loads
 
 
 def sync():
-    print('Começou!')
-    #print('Aguardando...')
+    print('Started!')
+    #print('Loading...')
     #print('----------')
     req = get('https://jsonplaceholder.typicode.com/posts')
     if req.status_code == 200:
         print('----------')
         print(loads(req.text)[0])
         print('----------')
-        print('Terminou.')
+        print('End.')
         #print('----------')
-        #print('Aguardando...')
+        #print('Loading...')
 
 sync()
