@@ -1,3 +1,5 @@
+# Veja utilizando as linhas comentadas.
+
 from requests import get
 from json import loads
 

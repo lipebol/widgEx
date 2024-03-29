@@ -1,3 +1,5 @@
+// Veja utilizando as linhas comentadas.
+
 function async() {
     console.log('Começou!')
     //console.log('Aguardando...')
