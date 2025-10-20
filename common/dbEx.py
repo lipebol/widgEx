@@ -1,7 +1,6 @@
 from .loadEx import load
 from pymongo import MongoClient
 from pymongoarrow.monkey import patch_all
-from os import environ
 
 class mongodb:
 
