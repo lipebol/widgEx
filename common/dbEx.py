@@ -1,4 +1,4 @@
-from .loadEx import load
+from .loadEx import load, system
 from pymongo import MongoClient
 from pymongoarrow.monkey import patch_all
 
@@ -9,7 +9,7 @@ class mongodb:
     def connect(database: str, collection: str):
         patch_all()
         return MongoClient(
-            load.variable('MONGODB_URI')
+            system.decr(value=load.variable('MONGODB_URI'))
         ).get_database(
             database if database else load.variable('MONGODB_DEFAULT')
         ).get_collection(collection)
