@@ -1,9 +1,12 @@
+from datetime import datetime
 from dbus import Interface, PROPERTIES_IFACE, SessionBus
 from dotenv import load_dotenv
 import json
 from logging import basicConfig, info, INFO
 from os import environ, getenv, path
 from pathlib import Path
+from pytz import timezone
+from subprocess import run, PIPE
 from time import sleep
 
 
@@ -17,22 +20,12 @@ class load:
     )
 
     @staticmethod
-    def exception(func):
-        def wrapper(*args, **kwargs):
-            try:
-                return func(*args, **kwargs)
-            except Exception as error:
-                raise Exception(f"{error} (👉 @{str(func).split(' ')[1]} 👈)")
-        return wrapper
-
-    @staticmethod
     def quiet(func):
         def wrapper(*args, **kwargs):
             sleep(1)
             return func(*args, **kwargs)
         return wrapper
 
-    @exception
     @staticmethod
     def path(path: str | None = None, *, join: list | str | None = None) -> Path:
         path = Path(path) if path else Path.cwd()
@@ -46,31 +39,42 @@ class load:
     def checkpath(_path: str, *, dir: str | bool = False) -> bool:
         return path.exists(_path)
 
-    @exception
     @staticmethod
     def variable(var: str, *, load: bool = True, add: str | None = None) -> str:
         if add:
             environ[var] = add
         return getenv(var) if load else var
 
-    @exception
     @staticmethod
-    def jsonEx(*, path: str | None = None, data: str | None = None):
+    def jsonEx(
+        *, path: str | None = None, data: str | dict | None = None, 
+        to_string: bool = False, to_objectpy: bool = False
+    ):
         if not path and data:
-            return json.loads(json.dumps(data))
+            if to_string:
+                data = json.dumps(data)
+            if to_objectpy:
+                data = json.loads(data)
+            return data
         with open(path, 'w' if data else 'r') as _jsonEx:
             if not data:
                 return json.load(_jsonEx)
             json.dump(data, _jsonEx, indent=5)
 
-    @exception
     @staticmethod
     def tmpfile(*, path: str, filename: str | None = None) -> str:
         return load.path(
             path, join='tmp.json' if not filename else f'{filename}.json'
         )
-    
-    @exception
+
+    @staticmethod
+    def timezone_default(timezone: str | None = None) -> str:
+        return 'America/Sao_Paulo' if not timezone else timezone
+
+    @staticmethod
+    def now():
+        return datetime.now(tz=timezone(load.timezone_default())).isoformat()
+   
     @quiet
     @staticmethod
     def info(_info: str) -> str:
@@ -94,7 +98,16 @@ class system:
             return load.jsonEx(
                 data=Interface(
                     SessionBus().get_object(name, objectpath), PROPERTIES_IFACE
-                ).Get(interface, propertie)
+                ).Get(interface, propertie), to_string=True, to_objectpy=True
             )
         except Exception as error:
             load.info(error)
+
+    def __shell(self, command: str):
+        return run(command, shell=True, stdout=PIPE, text=True).stdout.strip()
+
+    @staticmethod
+    def decr(*, variable: str | None = None, value: str | None = None):
+        if (load_decr := load.variable('A7S6I002TMK6SUT5W')): # set in "/etc/environment"
+            return system().__shell(load_decr % {"arg": value or f"${variable}"})
+        raise Exception(load_decr)
