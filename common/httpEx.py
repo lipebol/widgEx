@@ -1,10 +1,9 @@
-from bs4 import BeautifulSoup
 from .loadEx import load
+from bs4 import BeautifulSoup
 from requests import get
 
 class httpEx:
 
-    @load.exception
     @load.quiet
     @staticmethod
     def getdata(func):
