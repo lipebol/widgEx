@@ -3,6 +3,10 @@ from dataclasses import asdict, dataclass, field
 from inspect import getmembers, isclass, signature
 from sys import modules
 
+@dataclass
+class Genre:
+    name: str
+    url: str
 
 @dataclass
 class Event_Date:
