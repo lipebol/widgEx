@@ -4,7 +4,6 @@ from pymongoarrow.monkey import patch_all
 
 class mongodb:
 
-    @load.exception
     @staticmethod
     def connect(database: str, collection: str):
         patch_all()
@@ -14,7 +13,6 @@ class mongodb:
             database if database else load.variable('MONGODB_DEFAULT')
         ).get_collection(collection)
 
-    @load.exception
     @staticmethod
     def select(
         collection: str, *, database: str | None = None, 
@@ -25,12 +23,10 @@ class mongodb:
             return _db.find_arrow_all({}).drop_columns('_id').to_pylist()
         return list(_db.find(filter, fields))
 
-    @load.exception
     @staticmethod
     def update(collection: str, *, filter: dict, update: dict, database: str | None = None):
         return mongodb.connect(database, collection).update_many(filter, { '$set' : update})
 
-    @load.exception
     @staticmethod
     def setdb(database: str):
         load.variable('MONGODB_DEFAULT', add=database)
