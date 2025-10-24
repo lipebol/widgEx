@@ -24,8 +24,16 @@ class mongodb:
         return list(_db.find(filter, fields))
 
     @staticmethod
-    def update(collection: str, *, filter: dict, update: dict, database: str | None = None):
+    def update(collection: str, *, database: str | None = None, filter: dict, update: dict):
         return mongodb.connect(database, collection).update_many(filter, { '$set' : update})
+
+    @staticmethod
+    def insert(
+        collection: str, *, database: str | None = None, 
+        data: dict, many: bool = False
+    ):
+        if not many:
+            return mongodb.connect(database, collection).insert_one(data).inserted_id
 
     @staticmethod
     def setdb(database: str):
