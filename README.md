@@ -3,7 +3,7 @@
 </h1>
 
 
-> spotifEx: **github.com/Madh93/conky-spotify** (concept)
+> spotifEx: based on **github.com/Madh93/conky-spotify**
 
 
 ## :bulb: Autor
