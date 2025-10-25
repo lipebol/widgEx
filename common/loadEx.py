@@ -112,3 +112,9 @@ class system:
         if (load_decr := load.variable('A7S6I002TMK6SUT5W')): # set in "/etc/environment"
             return system().__shell(load_decr % {"arg": value or f"${variable}"})
         raise Exception(load_decr)
+
+    @staticmethod
+    def notifysend(*, title: str = 'WARNING!', message: str):
+        if (notify := load.variable('NOTIFY_SEND')):
+            return system().__shell(notify % (f'''"👉 {title} 👈\n\n""{message}"'''))
+        raise Exception(notify)
