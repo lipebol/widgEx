@@ -72,8 +72,9 @@ class load:
         return 'America/Sao_Paulo' if not timezone else timezone
 
     @staticmethod
-    def now():
-        return datetime.now(tz=timezone(load.timezone_default())).isoformat()
+    def now(*, all: bool = True):
+        if (now := datetime.now(tz=timezone(load.timezone_default()))):
+            return now.strftime('%Y-%m-%d') if not all else now.isoformat()
    
     @quiet
     @staticmethod
