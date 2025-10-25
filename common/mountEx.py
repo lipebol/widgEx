@@ -15,6 +15,12 @@ class Artist:
     genres: list = field(default_factory=list)
 
 @dataclass
+class Track:
+    about: dict
+    date: str = field(default=load.now(all=False))
+    listen: int = field(default=1)
+
+@dataclass
 class Event_Date:
     dateTime: str = field(default=load.now())
     timeZone: str = field(default=load.timezone_default())
