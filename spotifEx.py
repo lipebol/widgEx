@@ -8,16 +8,6 @@ from time import sleep
 
 class init:
 
-    mongodb.setdb('spotifEx')
-
-    @add.exception
-    @staticmethod
-    def env():
-        if not load.checkpath(tmpfile := load.tmpfile(path='/tmp')):
-            load.jsonEx(path=tmpfile, data=mongodb.select('_envs')[0])
-        for key, value in load.jsonEx(path=tmpfile).items():
-            yield load.variable(key, add=value)
-
     @add.exception
     @staticmethod
     def metadata() -> dict:
@@ -111,16 +101,16 @@ class init:
     @add.exception        
     @staticmethod
     def run():
-        load.info('spotifEx...')
-        if list(init.env()):
+        if mongodb.setconfig('spotifEx'):
+            load.info('spotifEx...')
             if (
                 metadata := init.metadata()
             ) and init.trackid(
                 trackid := metadata.get('trackid')
             ):
                 if (track := init.trackfind(trackid)):
-                    return init.uplisten(track)
-                return init.spotifEx(metadata)
+                    return load.info(init.uplisten(track))
+                return load.info(init.spotifEx(metadata))
 
 if __name__ == '__main__':
     try:
