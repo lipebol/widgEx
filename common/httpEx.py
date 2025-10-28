@@ -12,7 +12,7 @@ class httpEx:
                 load.info(f"Requesting... ({url})")
                 if (
                     response := get(
-                        url, params=kwargs.get('params'), timeout=2, 
+                        url, params=kwargs.get('params'), timeout=10, 
                         headers={'User-Agent': load.variable('HEADERS')}
                     )
                 ).status_code == 200:
@@ -25,11 +25,15 @@ class httpEx:
     @getdata
     @staticmethod
     def scrape(**kwargs) -> list:
-        if not kwargs.get('type') or kwargs.get('tag'):
-            kwargs['type'], kwargs['tag'] = ('lxml','a')
+        if not kwargs.get('type'):
+            kwargs['type'] = 'lxml'
+        if not kwargs.get('tag'):
+            kwargs['tag'] = 'a'
+        if not kwargs.get('attrs'):
+            kwargs['attrs'] = {}
         return BeautifulSoup(
             kwargs.get('response'), kwargs.get('type') ### <-- 'xml' or 'lxml'
-        ).find_all(kwargs.get('tag'))
+        ).find_all(kwargs.get('tag'), attrs=kwargs.get('attrs'))
         
     @staticmethod
     def checkIP(**kwargs):
