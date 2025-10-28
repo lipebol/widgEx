@@ -1,7 +1,6 @@
+from .authEx import authentication
 from .loadEx import load, system
 from .mountEx import mount
-from googleapiclient.discovery import build
-from google.oauth2 import service_account
 
 
 class notific:
@@ -23,21 +22,5 @@ class notific:
             )
         ).execute()
 
-
-class authentication:
-    
-    def __authorize(self, auth: str, scope: str) -> object:
-        return service_account.Credentials.from_service_account_info(
-            load.jsonEx(data=system.decr(variable=auth), to_objectpy=True), 
-            scopes=[system.decr(variable=scope)]
-        )
-        
-    @staticmethod
-    def service(*, name: str, version: str, auth: str, scope: str) -> object:
-        return build(
-            name, version, credentials=authentication().__authorize(auth, scope),
-            cache_discovery=False
-        )
-    
 
     
