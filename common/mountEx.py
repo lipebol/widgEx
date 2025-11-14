@@ -15,9 +15,9 @@ class Artist:
     genres: list = field(default_factory=list)
 
 @dataclass
-class Track:
-    about: dict
-    date: str = field(default=load.now(all=False))
+class Daylist:
+    track: str
+    date: str
     listen: int = field(default=1)
 
 @dataclass
