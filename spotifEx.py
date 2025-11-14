@@ -3,15 +3,14 @@ from common.dbEx import mongodb
 from common.httpEx import httpEx
 from common.loadEx import load, system
 from common.mountEx import mount
-from common.notifEx import notific
 from time import sleep
 
 class init:
 
     @add.exception
     @staticmethod
-    def metadata() -> dict:
-        if (dbus := system.dbus(projectname='spotifEx')):
+    def metadata(name: str) -> dict:
+        if (dbus := system.dbus(projectname=name)):
             return dict((key.split(':')[1], value) for key, value in dbus.items())
 
     @add.exception
@@ -27,42 +26,42 @@ class init:
 
     @add.exception
     @staticmethod
-    def trackfind(trackid: str) -> dict | None:
-        if (track := mongodb.select(
-                'tracks', filter={
-                    'date': load.now(all=False),
-                    'about.trackid': trackid
-                }, fields={'listen': 1}
+    def trackfind(trackid: str) -> str | list | None:
+        if (
+            track := mongodb.select(
+                'tracks', filter={'trackid': trackid}, fields={'_id': 1}
             )
         ):
-            return track[0]
+            if (
+                daylist := mongodb.select(
+                    'daylists', filter={
+                        'date': load.now(all=False),
+                        'track': (track := track[0].get('_id'))
+                    }, fields={'listen': 1}
+                )
+            ):
+                return daylist
+            return track
 
     @add.exception
     @staticmethod
-    def uplisten(track: dict) -> str:
-        return mongodb.update(
-            'tracks', filter={'_id': track.get('_id')}, 
-            update={'listen': track.get('listen')+1}
-        )
-
-    @add.exception
-    @staticmethod
-    def genrefind(genre: dict):
+    def genrefind(genre: dict, collection='genres') -> str:
         if genre and isinstance(genre, dict):
             return genre[0].get('_id') if (
                 genre := mongodb.select(
-                    'genres', filter=(genre_data := genre), 
+                    collection, filter=(genre_data := genre), 
                     fields={'_id': 1}
                 )
-            ) else mongodb.insert('genres', data=genre_data)
+            ) else mongodb.insert(collection, data=genre_data)
 
 
     @add.exception
     @staticmethod
-    def artistfind(artist: str):
+    def artistfind(artist: str, collection='artists'):
         if (_artist := mongodb.select(
-                'artists', filter={'name': (artist := ''.join(artist))},
-                fields={'_id': 1}
+                collection, filter={
+                    'name': (artist := ''.join(artist))
+                }, fields={'_id': 1}
             )
         ):
             return _artist[0].get('_id')
@@ -83,43 +82,51 @@ class init:
                             mount.data(name=i.text, url=_url)
                         )
                     )
-            return mongodb.insert('artists', data=_artist)
+            return mongodb.insert(collection, data=_artist)
+        return 'Not Found.'
+
+    @add.exception
+    @staticmethod
+    def daylist(track: str | list, collection='daylists') -> str | dict:
+        if isinstance(track, list):
+            return mongodb.update(
+                collection, filter={
+                    '_id': (track := track[0]).get('_id')
+                }, update={'listen': track.get('listen')+1}
+            )
+        return mongodb.insert(
+            collection, data=mount.data(
+                track=track, date=load.now(all=False)
+            )
+        )
 
     @add.exception
     @staticmethod
     def spotifEx(metadata: dict):
         del metadata['albumArtist']
-        return mongodb.insert(
-            'tracks', data=mount.data(
-                about={
-                    **metadata, 
-                    'artist': init.artistfind(metadata.get('artist'))
-                }
-            )
-        )
+        metadata['artist'] = init.artistfind(metadata.get('artist'))
+        return init.daylist(mongodb.insert('tracks', data=metadata))
 
     @add.exception        
     @staticmethod
-    def run():
-        if mongodb.setconfig('spotifEx'):
-            load.info('spotifEx...')
+    def run(widgEx: str):
+        if mongodb.setconfig(widgEx):
+            load.info(f'{widgEx}...')
             if (
-                metadata := init.metadata()
+                metadata := init.metadata(widgEx)
             ) and init.trackid(
                 trackid := metadata.get('trackid')
             ):
                 if (track := init.trackfind(trackid)):
-                    return load.info(init.uplisten(track))
+                    return load.info(init.daylist(track))
                 return load.info(init.spotifEx(metadata))
 
 if __name__ == '__main__':
     try:
         while True:
-            init.run()
+            init.run('spotifEx')
             sleep(5)
     except KeyboardInterrupt:
         load.info('Exit.')
     except Exception as error:
         system.notifysend(message=error)
-
-    
