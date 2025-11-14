@@ -12,7 +12,7 @@ class httpEx:
                 load.info(f"Requesting... ({url})")
                 if (
                     response := get(
-                        url, params=kwargs.get('params'), timeout=30, 
+                        url, params=kwargs.get('params'), timeout=60, 
                         headers={'User-Agent': load.variable('HEADERS')}
                     )
                 ).status_code == 200:
