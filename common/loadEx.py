@@ -56,10 +56,10 @@ class load:
             if to_objectpy:
                 data = json.loads(data)
             return data
-        with open(path, 'w' if data else 'r') as _jsonEx:
+        with open(path, 'w' if data else 'r', encoding='utf-8') as _jsonEx:
             if not data:
                 return json.load(_jsonEx)
-            json.dump(data, _jsonEx, indent=5)
+            json.dump(data, _jsonEx, ensure_ascii=False, indent=5)
 
     @staticmethod
     def tmpfile(*, path: str, filename: str | None = None) -> str:
