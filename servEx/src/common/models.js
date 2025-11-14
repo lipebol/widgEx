@@ -1,4 +1,4 @@
-const { mongoose, mongooseSpotifEx } = require(process.env.INSTANCE_MONGODB)
+const { mongoose, mongooseSpotifEx } = require(process.env.INSTANCES)
 
 const SPOTIFEX_GENRES = mongooseSpotifEx.model(
     'SPOTIFEX_GENRES', new mongoose.Schema(
@@ -45,8 +45,7 @@ const SPOTIFEX_DAYLISTS = mongooseSpotifEx.model(
             id: { type: mongoose.ObjectId, required: true },
             track: { type: mongoose.ObjectId, ref: 'SPOTIFEX_TRACKS' },
             date: { type: String, required: true },
-            listen: { type: Number, required: true },
-
+            listen: { type: Number, required: true }
         }
     ), 'daylists'
 )

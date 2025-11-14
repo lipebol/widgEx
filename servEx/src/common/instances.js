@@ -1,5 +1,5 @@
 const { mongoose } = require(process.env.ODM)
-const { Sequelize } = require(process.env.ORM)
+const { Sequelize, Op } = require(process.env.ORM)
 
 const mongooseSpotifEx = mongoose.createConnection(process.env.ENGINE_MONGODB).useDb('spotifEx')
 
@@ -17,4 +17,4 @@ const sequelizeConnect = new Sequelize(
     }
 )
 
-module.exports = { mongoose, mongooseSpotifEx, Sequelize, sequelizeConnect }
+module.exports = { mongoose, mongooseSpotifEx, Sequelize, sequelizeConnect, Op }
