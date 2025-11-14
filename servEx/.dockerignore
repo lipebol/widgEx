@@ -1,0 +1,10 @@
+### dirs
+.git/
+node_modules/
+
+### files
+npm-debug.log
+.dockerignore
+.gitignore
+docker-compose.yml
+Dockerfile
