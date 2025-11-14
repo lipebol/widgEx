@@ -1,4 +1,4 @@
-const { mongoose } = require(process.env.MONGOOSE)
+const { mongoose } = require(process.env.ODM)
 const { Sequelize } = require(process.env.ORM)
 
 const mongooseSpotifEx = mongoose.createConnection(process.env.ENGINE_MONGODB).useDb('spotifEx')
