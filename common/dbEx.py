@@ -46,7 +46,7 @@ class mongodb:
     @property
     def __env(self):
         if not load.checkpath(tmpfile := load.tmpfile(path='/tmp')):
-            load.jsonEx(path=tmpfile, data=mongodb.select('_envs', database='common',)[0])
+            load.jsonEx(path=tmpfile, data=mongodb.select('_envs', database='common')[0])
         for key, value in load.jsonEx(path=tmpfile).items():
             yield load.variable(key, add=value)
     
