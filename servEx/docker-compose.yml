@@ -1,0 +1,45 @@
+### Never send your "passwords" in Production ###
+
+x-base: &common
+  build:
+    context: ./servEx
+    dockerfile: Dockerfile
+  restart: unless-stopped
+  networks:
+    - podman
+  deploy:
+    resources:
+      limits:
+        cpus: 2
+        memory: 2048M
+        pids: 200
+  memswap_limit: 4096M
+  logging:
+    options:
+      max-size: 10M
+      max-file: 3
+  security_opt:
+    - no-new-privileges=true
+  environment:
+    - PUID=1000
+    - PGID=1000
+
+services:
+  servEx:
+    <<: *common
+    build:
+      target: dev
+    image: widgEx/servEx
+    container_name: servEx
+    tty: true
+    stdin_open: true
+    # expose:
+    #   - 2181/tcp
+    ports:
+      - 3000:3000
+    volumes:
+      - .:/home/node/widgEx/servEx
+
+networks:
+  podman:
+    external: true
