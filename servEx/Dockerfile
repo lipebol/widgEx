@@ -1,6 +1,4 @@
 ### Never send your "passwords" in Production ###
-
-
 FROM node:lts-slim AS base-build
 
 RUN \
@@ -11,6 +9,4 @@ RUN \
 
 # === DEV ===
 FROM base-build AS dev
-WORKDIR /home/node/widgEx/servEx
-RUN npm install 
-USER node
+WORKDIR /home/node/servEx
