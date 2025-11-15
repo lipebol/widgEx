@@ -25,20 +25,18 @@ x-base: &common
     - PGID=1000
 
 services:
-  servEx:
+  servEx-dev:
     <<: *common
     build:
       target: dev
-    image: widgEx/servEx
-    container_name: servEx
+    image: lipebol/servex-dev
+    container_name: servEx-dev
     tty: true
     stdin_open: true
-    # expose:
-    #   - 2181/tcp
     ports:
       - 3000:3000
     volumes:
-      - .:/home/node/widgEx/servEx
+      - .:/home/node/servEx
 
 networks:
   podman:
