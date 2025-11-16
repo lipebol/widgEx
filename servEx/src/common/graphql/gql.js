@@ -7,7 +7,7 @@ const { resolvers } = require(process.env.RESOLVERS)
 router.all(process.env.SLASH, createHandler({ schema: schemas, rootValue: resolvers }))
 router.get(
     process.env.GRAPHQL_TOOL, (request, response) => {
-        response.sendFile(require('path').join(__dirname, './graphiql.html'))
+        response.sendFile(require('path').join(__dirname, process.env.GRAPHIQL))
     }
 )
 
