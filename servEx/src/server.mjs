@@ -1,19 +1,18 @@
-require('dotenv').config()
-const cors = require(process.env.CORS)
-const Express = require(process.env.SERVER)
+import 'dotenv/config'
+import cors from 'cors'
+import Express from 'express'
+import router from './common/graphql/gql.mjs'
 const Server = Express()
 
 Server.use(cors())
 
-
-Server.use(process.env.GRAPHQL_ENDPOINT, require(process.env.GRAPHQL))
-
+Server.use(process.env.GRAPHQL_ENDPOINT, router)
 
 Server.use((req, res) => {
     if (
         (
             req.url.includes(process.env.API) && !(
-                req.url.includes(process.env.DOC) || 
+                req.url.includes(process.env.DOC) ||
                 req.url.includes(process.env.GRAPHIQL_ENDPOINT)
             )
         )
