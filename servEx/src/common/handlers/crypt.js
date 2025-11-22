@@ -1,10 +1,8 @@
-const { spawnSync } = require(process.env.PROCESS)
+import { spawnSync } from 'child_process'
 
-const cryptHandler = (uri) => {
+export const cryptHandler = (uri) => {
     return spawnSync(
         `clevis-decrypt-tang < ${uri}`, 
         { shell: true, encoding: 'utf8' }
     ).stdout.trim()
 }
-
-module.exports = { cryptHandler }
