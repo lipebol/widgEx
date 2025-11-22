@@ -7,7 +7,8 @@ export class SetHandler {
             this.handler = {
                 ...request,
                 response: response,
-                validator: new Array()
+                validator: new Array(),
+                limit: 10000
             }
         } catch (err) { console.log(err) }
     }
@@ -46,22 +47,10 @@ export class SetHandler {
 
     param() { /// <--- GraphQL
         try {
+            this.handler.paramsType = this.handler.between ? 'dates' : 'multi'
             this.handler.params = Object.values(this.handler)[0] === '*' ?
-                undefined : {
-                    [this.handler.paramsType = this.handler.between ? 'dates' : 'multi']:
-                        Object.values(this.handler)[0]
-                }
+                undefined : Object.values(this.handler)[0]
             if (this.handler.params) { ParamsHandler.check(this.handler) }
-            return this
-        } catch (err) { console.log(err) }
-    }
-
-    page() {
-        try {
-            if (this.handler.page !== undefined) {
-                this.handler.page = parseInt(this.handler.page) <= 0 ? 1 :
-                    parseInt(this.handler.page)
-            }
             return this
         } catch (err) { console.log(err) }
     }
@@ -70,30 +59,31 @@ export class SetHandler {
 
     fields() {
         try {
-            const unwrap = (content) => {
-                return (
-                    Array.isArray(content) ? content[0] : content
-                ).selectionSet?.selections
-            }
-
-            unwrap(this.handler.about.fields).forEach(
-                (node) => {
-                    if (
-                        node.typeCondition?.name.value
-                        === this.handler.about.resolver
-                    ) {
-                        this.handler.fields = unwrap(unwrap(node))
-                            .map(selection => selection.name.value)
-                    }
+            if (this.handler.about.fields && !this.handler.error) {
+                const unwrap = (content) => {
+                    return (
+                        Array.isArray(content) ? content[0] : content
+                    ).selectionSet?.selections
                 }
-            )
+                unwrap(this.handler.about.fields).forEach(
+                    (node) => {
+                        if (
+                            node.typeCondition?.name.value
+                            === this.handler.about.resolver
+                        ) {
+                            this.handler.fields = unwrap(unwrap(node))
+                                .map(selection => selection.name.value)
+                        }
+                    }
+                )
+            }
             return this
         } catch (err) { console.log(err) }
     }
 
     lookup(...args) {
         try {
-            if (args) {
+            if (args && !this.handler.error) {
                 this.handler.lookup = args.length === 1 ?
                     args[0] : { path: args[0], populate: args[1] }
             }
@@ -101,9 +91,63 @@ export class SetHandler {
         } catch (err) { console.log(err) }
     }
 
-    sql() { try { this.handler.db = 'sql' } catch (err) { console.log(err) } }
+    page() {
+        try {
+            if (this.handler.page && !this.handler.error) {
+                this.handler.page = parseInt(this.handler.page) <= 0 ? 1 :
+                    parseInt(this.handler.page)
+            }
+            return this
+        } catch (err) { console.log(err) }
+    }
 
-    nosql() { try { this.handler.db = 'mongodb' } catch (err) { console.log(err) } }
+    sql() {
+        try {
+            if (!this.handler.error) { this.handler.db = 'sql' }
+        } catch (err) { console.log(err) }
+    }
 
-    finally() { try { return this.handler } catch (err) { console.log(err) } }
+    nosql() {
+        try {
+            if (!this.handler.error) { this.handler.db = 'nosql' }
+        } catch (err) { console.log(err) }
+    }
+
+    build() {
+        try {
+            if (!this.handler.error) {
+                if (this.handler.page) {
+                    this.handler.offset = (this.handler.page - 1) * this.handler.limit
+                }
+                if (this.handler.filter && this.handler.params) {
+                    switch (this.handler.db) {
+                        case 'sql':
+                            break
+                        case 'nosql':
+                            this.handler.sort = { [this.handler.filter]: 'asc' }
+                            this.handler.where = (() => {
+                                switch (this.handler.paramsType) {
+                                    case 'dates':
+                                        return {
+                                            [this.handler.filter]: {
+                                                '$gte': new Date(this.handler.params.start),
+                                                '$lte': new Date(this.handler.params.end)
+                                            }
+                                        }
+                                    case 'multi':
+                                        return {
+                                            [this.handler.filter]: {
+                                                '$in': this.handler.params
+                                            }
+                                        }
+                                }
+
+                            })()
+                            break
+                    }
+                }
+            }
+            return this.handler
+        } catch (err) { console.log(err) }
+    }
 }
