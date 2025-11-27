@@ -27,6 +27,11 @@ export const schemas = buildSchema(`
         status_code: Int!
     }
 
+    type Info {
+        total: Int
+        pages: Int
+    }
+
     type spotifExGenresFields {
         name: String
         url: String
@@ -36,37 +41,52 @@ export const schemas = buildSchema(`
         data: [spotifExGenresFields]
     }
 
-    type spotifExArtists {
+    type spotifExArtistsFields {
         name: String
         profile: String
         genres: [spotifExGenresFields]
     }
 
-    type spotifExTracks {
+    type spotifExArtists {
+        data: [spotifExArtistsFields]
+    }
+
+    type spotifExTracksFields {
         trackid: String
         length: String
         artUrl: String
         album: String
-        artist: spotifExArtists
+        artist: spotifExArtistsFields
         autoRating: String
         discNumber: String
         title: String
         trackNumber: String
         url: String
     }
+
+    type spotifExTracks {
+        data: [spotifExTracksFields]
+    }
     
-    type spotifExDaylists {
-        track: spotifExTracks
+    type spotifExDaylistsFields {
+        track: spotifExTracksFields
         date: String
         listen: Int
     }
 
-    union spotifExGenresResponse = spotifExGenres | NotFound | BadRequest | InternalError
+    type spotifExDaylists {
+        data: [spotifExDaylistsFields]
+    }
+
+    union spotifExGenresResponse = spotifExGenres | Info | NotFound | BadRequest | InternalError
+    union spotifExArtistsResponse = spotifExArtists | Info | NotFound | BadRequest | InternalError
+    union spotifExTracksResponse = spotifExTracks | Info | NotFound | BadRequest | InternalError
+    union spotifExDaylistsResponse = spotifExDaylists | Info | NotFound | BadRequest | InternalError
 
     type Query {
-        spotifExGenres(name: String): spotifExGenresResponse!
-        spotifExArtists(name: String, page: Int): [spotifExArtists]
-        spotifExTracks(title: String, page: Int): [spotifExTracks]
-        spotifExDaylists(between: String, page: Int): [spotifExDaylists]
+        spotifExGenres(name: String, info: Boolean): spotifExGenresResponse!
+        spotifExArtists(name: String, page: Int, info: Boolean, lookup: Boolean): spotifExArtistsResponse!
+        spotifExTracks(title: String, page: Int, info: Boolean, lookup: Boolean): spotifExTracksResponse!
+        spotifExDaylists(date: String, page: Int, info: Boolean, lookup: Boolean): spotifExDaylistsResponse!
     }
 `)
