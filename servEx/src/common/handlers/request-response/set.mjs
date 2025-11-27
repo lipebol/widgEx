@@ -5,10 +5,8 @@ export class SetHandler {
     constructor(request, response) {
         try {
             this.handler = {
-                ...request,
+                ...ParamsHandler.check(request),
                 response: response,
-                validator: new Array(),
-                limit: 10000
             }
         } catch (err) { console.log(err) }
     }
@@ -26,15 +24,6 @@ export class SetHandler {
         } catch (err) { console.log(err) }
     }
 
-    filter() {
-        try {
-            this.handler.filter = this.handler.name && this.handler.column ? /// <--- REST
-                process.env[`${(this.handler.name + this.handler.column).toUpperCase()}`] :
-                Object.keys(this.handler)[0].toString() /// <--- GraphQL
-            return this
-        } catch (err) { console.log(err) }
-    }
-
     query(args) { /// <--- REST
         try {
             if (args) {
@@ -42,16 +31,6 @@ export class SetHandler {
                 let [arg] = Object.values(args)
                 if (param && arg) { this.object.params = { [param]: arg } }
             }
-        } catch (err) { console.log(err) }
-    }
-
-    param() { /// <--- GraphQL
-        try {
-            this.handler.paramsType = this.handler.between ? 'dates' : 'multi'
-            this.handler.params = Object.values(this.handler)[0] === '*' ?
-                undefined : Object.values(this.handler)[0]
-            if (this.handler.params) { ParamsHandler.check(this.handler) }
-            return this
         } catch (err) { console.log(err) }
     }
 
@@ -83,9 +62,11 @@ export class SetHandler {
 
     lookup(...args) {
         try {
-            if (args && !this.handler.error) {
-                this.handler.lookup = args.length === 1 ?
-                    args[0] : { path: args[0], populate: args[1] }
+            if (this.handler.lookup) {
+                if (args && !this.handler.error) {
+                    this.handler.lookup = args.length === 1 ?
+                        args[0] : { path: args[0], populate: args[1] }
+                }
             }
             return this
         } catch (err) { console.log(err) }
@@ -124,7 +105,6 @@ export class SetHandler {
                         case 'sql':
                             break
                         case 'nosql':
-                            this.handler.sort = { [this.handler.filter]: 'asc' }
                             this.handler.where = (() => {
                                 switch (this.handler.paramsType) {
                                     case 'dates':
@@ -141,7 +121,6 @@ export class SetHandler {
                                             }
                                         }
                                 }
-
                             })()
                             break
                     }
