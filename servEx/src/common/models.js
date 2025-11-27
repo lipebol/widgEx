@@ -1,5 +1,5 @@
 import { mongoose } from 'mongoose'
-import { mongooseSpotifEx } from './instances.js'
+import { mongooseAddons, mongooseSpotifEx } from './instances.js'
 
 export const spotifExGenres = mongooseSpotifEx.model(
     'spotifExGenres', new mongoose.Schema(
@@ -7,7 +7,7 @@ export const spotifExGenres = mongooseSpotifEx.model(
             id: { type: mongoose.ObjectId, required: true },
             name: { type: String, required: true },
             url: { type: String, required: true }
-        }
+        }, mongooseAddons
     ), 'genres'
 )
 
@@ -18,7 +18,7 @@ export const spotifExArtists = mongooseSpotifEx.model(
             name: { type: String, required: true },
             profile: { type: String, required: true },
             genres: [{ type: mongoose.ObjectId, ref: 'spotifExGenres' }]
-        }
+        }, mongooseAddons
     ), 'artists'
 )
 
@@ -36,7 +36,7 @@ export const spotifExTracks = mongooseSpotifEx.model(
             title: { type: String, required: true },
             trackNumber: { type: Number, required: true },
             url: { type: String, required: true }
-        }
+        }, mongooseAddons
     ), 'tracks'
 )
 
@@ -47,6 +47,6 @@ export const spotifExDaylists = mongooseSpotifEx.model(
             track: { type: mongoose.ObjectId, ref: 'spotifExTracks' },
             date: { type: String, required: true },
             listen: { type: Number, required: true }
-        }
+        }, mongooseAddons
     ), 'daylists'
 )
