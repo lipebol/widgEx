@@ -6,34 +6,36 @@ export class GetHandler {
         try {
             const handler = new SetHandler(request, response)
             return request.route ?
-                GetHandler.REST(handler) :
-                GetHandler.GraphQL(handler, request.about.resolver)
+                GetHandler.#REST(handler) :
+                GetHandler.#GraphQL(handler, request.about.resolver)
         } catch (err) { console.log(err) }
     }
 
-    static response(handler) {
+    static response(dataobject) {
         try {
-            console.log(handler)
-            if (handler.response) {
+            if (dataobject.response) {
                 this.status = parseInt(
                     process.env[Object.keys(data).toString().toUpperCase()]
                 )
                 return response.status(this.status ? this.status : 200).json(data)
             } else {
-                if (handler.error) {
-                    return GetHandler.GraphQLError(
-                        handler.error.name, handler.error.code
-                    )
-                } else {
-                    return handler.data.length === 0 ?
-                        GetHandler.GraphQLError('NotFound', 404) :
-                        { __typename: handler.about.resolver, data: handler.data }
+                // __typename: --> essential when you deal with unions/interfaces
+                if (dataobject.error) {
+                    return {
+                        __typename: dataobject.error.name, error: dataobject.error.name,
+                        message: process.env[dataobject.error.name],
+                        status_code: dataobject.error.code
+                    }
                 }
+                return dataobject.info ? {
+                    __typename: 'Info', total: dataobject.data.count,
+                    pages: dataobject.data.countpages
+                } : { __typename: dataobject.about.resolver, data: dataobject.data }
             }
         } catch (err) { console.log(err) }
     }
 
-    static REST(handler) {
+    static #REST(handler) {
         try {
             let [version, name, table, column] = set.url(request.originalUrl)
             sethandler.model({ name, table })
@@ -48,34 +50,32 @@ export class GetHandler {
         } catch (err) { console.log(err) }
     }
 
-    static GraphQL(handler, resolver) {
+    static #GraphQL(handler, resolvername) {
         try {
-            switch (resolver) {
+            switch (resolvername) {
                 case 'spotifExGenres':
                     handler.model()
-                        .filter()
-                        .param()
                         .fields()
                         .nosql()
                     break
                 case 'spotifExArtists':
                     handler.model()
-                        .filter()
-                        .param()
                         .page()
                         .lookup('genres')
                         .nosql()
                     break
+                case 'spotifExTracks':
+                    handler.model()
+                        .lookup('artist', { path: 'genres' })
+                        .nosql()
+                    break
+                case 'spotifExDaylists':
+                    handler.model()
+                        .lookup('track', { path: 'artist', populate: { path: 'genres' } })
+                        .nosql()
+                    break
             }
-            return handler.finally()
+            return handler.build()
         } catch (err) { console.log(err) }
-    }
-
-    static GraphQLError(name, code) {
-        // __typename: --> essential when you deal with unions/interfaces
-        return {
-            __typename: name, error: name,
-            message: process.env[name], status_code: code
-        }
     }
 }
