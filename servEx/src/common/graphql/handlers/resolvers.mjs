@@ -20,17 +20,17 @@ class Resolvers {
                     Resolvers.handler(request, context)
                 )
             },
-            async spotifExArtists(args, _, context) {
+            async spotifExArtists(request, _, context) {
                 return await Controllers.multi(
                     Resolvers.handler(request, context)
                 )
             },
-            async spotifExTracks(args, _, context) {
+            async spotifExTracks(request, _, context) {
                 return await Controllers.multi(
                     Resolvers.handler(request, context)
                 )
             },
-            async spotifExDaylists(args, _, context) {
+            async spotifExDaylists(request, _, context) {
                 return await Controllers.multi(
                     Resolvers.handler(request, context)
                 )
