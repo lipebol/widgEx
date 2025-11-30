@@ -4,37 +4,53 @@ import adbc_driver_postgresql.dbapi
 from pymongo import MongoClient
 from pymongoarrow.monkey import patch_all
 
-class db:
+
+class postgresql:
  
-    @property
-    def connect(self):
-        return adbc_driver_postgresql.dbapi.connect()
+    @staticmethod
+    def __connect(database):
+        if (database := database or load.variable('POSTGRESQL_DEFAULT')):
+            return adbc_driver_postgresql.dbapi.connect(
+                system.decr(value=load.variable('POSTGRESQL_URI')) % 
+                {'db': database}, autocommit=True
+            ).cursor()
+        raise Exception('The database was not declared.')
     
     @staticmethod
-    def columns(schema: str, table: str):
-        with db().conn().cursor() as __cursor:
-            __cursor.execute(
-                load.variable('SELECT_COMMAND') % (schema, table)
-            )
-            return [column[0] for column in __cursor.description]
+    def columns(*, schema: str, table: str, database: str | None = None) -> list:
+        if schema and table:
+            with postgresql.__connect(database) as conn:
+                conn.execute(load.variable('SELECT_COMMAND') % (schema,table,''))
+                return [column[0] for column in conn.description]
 
     @staticmethod
-    def select(schema: str, table: str, params=None):
-        sql_command = load.variable('SELECT_COMMAND') % (schema, table)
-        if params:
-            pass
-        return db().__postgres.get_records(sql_command)
+    def select(
+        *, schema: str, table: str, params='', 
+        database: str | None = None
+    ):
+        if schema and table:
+            with postgresql.__connect(database) as conn:
+                conn.execute(load.variable('SELECT_COMMAND') % (schema,table,params))
+                return conn.fetch_arrow_table()
 
     @staticmethod
-    def adbc(pyarrowTable: object, schema: str, table: str) -> str:
-        with __conn.cursor() as cursor:
-            cursor.adbc_ingest(
-                db_schema_name=schema, table_name=table, 
-                data=pyarrowTable, mode='append'
-            )
-        __conn.commit()
-        __conn.close()
-        return load.variable('MESSAGE_SUCCESS')
+    def adbc(
+        *, data: object, schema: str, table: str, 
+        database: str | None = None
+    ):
+        if data and schema and table:
+            with postgresql.__connect(database) as conn:
+                conn.adbc_ingest(
+                    db_schema_name=schema, table_name=table, 
+                    data=data, mode='append'
+                )
+            return postgresql.select(schema, table)
+
+    @add.exception
+    @staticmethod
+    def setconfig(database: str | None = None):
+        config.db('POSTGRESQL_DEFAULT', database)
+        return list(config.envs())
 
 
 class mongodb:
@@ -73,17 +89,20 @@ class mongodb:
     @add.exception
     @staticmethod
     def setconfig(database: str | None = None):
-        if database:
-            load.variable('MONGODB_DEFAULT', add=database)
-            return list(mongodb().__env)
+        config.db('MONGODB_DEFAULT', database)
+        return list(config.envs())
 
-    @property
-    def __env(self):
+
+class config:
+
+    @staticmethod
+    def db(env: str, database: str | None = None) -> list:
+        if database:
+            return load.variable(env, add=database)
+
+    @staticmethod
+    def envs():
         if not load.checkpath(tmpfile := load.tmpfile(path='/tmp')):
             load.jsonEx(path=tmpfile, data=mongodb.select('_envs', database='common')[0])
         for key, value in load.jsonEx(path=tmpfile).items():
             yield load.variable(key, add=value)
-    
-
-
-    
