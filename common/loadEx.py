@@ -1,6 +1,8 @@
 from datetime import datetime
 from dbus import Interface, PROPERTIES_IFACE, SessionBus
 from dotenv import load_dotenv
+from inspect import currentframe, getmodule
+from glob import glob
 import json
 from logging import basicConfig, info, INFO
 from os import environ, getenv, path
@@ -20,6 +22,20 @@ class load:
     )
 
     @staticmethod
+    def widgex():
+        return load.__caller(currentframe().f_back)
+
+    @staticmethod
+    def schemadb():
+        if (
+            schemadb := load.variable(
+                load.__caller(currentframe().f_back).upper() + 'SCHEMADB'
+            )
+        ): 
+            return schemadb
+        raise Exception('The database schema was not declared.')
+
+    @staticmethod
     def quiet(func):
         def wrapper(*args, **kwargs):
             sleep(1)
@@ -34,6 +50,12 @@ class load:
                 join = [join]
             return path.joinpath(*join)
         return path
+
+    @staticmethod
+    def dirdownloads(dirname: str | None = None):
+        if (dirname := dirname or load.__caller(currentframe().f_back)):
+            return load.path(join=['common', '.downloads', dirname])
+        raise Exception('The downloads directory was not found.')
 
     @staticmethod
     def checkpath(_path: str, *, dir: str | bool = False) -> bool:
@@ -62,6 +84,22 @@ class load:
             json.dump(data, _jsonEx, ensure_ascii=False, indent=5)
 
     @staticmethod
+    def __files(filetype: str, dirname: str):
+        return glob(
+            load.variable(filetype) % load.dirdownloads(dirname), 
+            recursive=True
+        )
+    
+    @staticmethod
+    def zip_files(with_path=True):
+        __zip_files = load.__files(
+            'ZIP_FILES', load.__caller(currentframe().f_back)
+        )
+        if not with_path:
+            return [load.path(zip_file).name for zip_file in __zip_files]
+        return __zip_files
+
+    @staticmethod
     def tmpfile(*, path: str, filename: str | None = None) -> str:
         return load.path(
             path, join='tmp.json' if not filename else f'{filename}.json'
@@ -79,7 +117,11 @@ class load:
     @quiet
     @staticmethod
     def info(_info: str) -> str:
-        return info(_info)
+        return info(_info + '...')
+
+    @staticmethod
+    def __caller(value: object):
+        return path.basename(getmodule(value).__file__).strip('.py')
 
 
 class system:
