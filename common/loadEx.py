@@ -10,6 +10,7 @@ from pathlib import Path
 from pytz import timezone
 from subprocess import run, PIPE
 from time import sleep
+from zipfile import ZipFile
 
 
 class load:
@@ -100,6 +101,21 @@ class load:
         return __zip_files
 
     @staticmethod
+    def unzip(zip_file: object, suffix=None) -> str:
+        def extract(zip_obj: object, suffix: str, path: str):
+            for file in zip_obj.namelist():
+                if file.endswith(suffix):
+                    yield zip_obj.extract(file, path)           
+        with ZipFile(zip_file, 'r') as zip_obj:
+            if suffix:
+                load.info(
+                    "\n%s\n" % '\n'.join(
+                        list(extract(zip_obj, suffix, zip_file.parent))
+                    )
+                )
+            return zip_obj.extractall(zip_file.parent)
+
+    @staticmethod
     def tmpfile(*, path: str, filename: str | None = None) -> str:
         return load.path(
             path, join='tmp.json' if not filename else f'{filename}.json'
@@ -117,7 +133,7 @@ class load:
     @quiet
     @staticmethod
     def info(_info: str) -> str:
-        return info(_info + '...')
+        return info(_info)
 
     @staticmethod
     def __caller(value: object):
