@@ -64,6 +64,7 @@ class postgresql:
                     [f"'{id}'" for id in data.select([2]).to_pydict()['id']]
                 )
             )
+        load.info("No data was found to insert.")
 
     @add.exception
     @staticmethod
