@@ -57,7 +57,13 @@ class postgresql:
                     db_schema_name=schema, table_name=table, 
                     data=data, mode='append'
                 )
-            return postgresql.select(schema, table=table)
+            load.info(f"Inserted {data.num_rows} rows in {schema}.{table}")
+            return postgresql.select(
+                schema, table=table, 
+                params="WHERE id IN (%s)" % ",".join(
+                    [f"'{id}'" for id in data.select([2]).to_pydict()['id']]
+                )
+            )
 
     @add.exception
     @staticmethod
