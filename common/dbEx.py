@@ -8,34 +8,47 @@ from pymongoarrow.monkey import patch_all
 class postgresql:
  
     @staticmethod
-    def __connect(database):
+    def __connect(database: str | None):
+        return adbc_driver_postgresql.dbapi.connect(
+            system.decr(value=load.variable('POSTGRESQL_URI')) % 
+            {'db': postgresql.isdb(database)}, autocommit=True
+        ).cursor()
+
+    @staticmethod
+    def sizedb(database: str | None = None):
+        with postgresql.__connect(
+            (database := postgresql.isdb(database))
+        ) as conn:
+            conn.execute(load.variable('SIZEDB') % database)
+            return "".join(conn.fetchone())
+    
+    @add.exception
+    @staticmethod
+    def isdb(database: str | None) -> str:
         if (database := database or load.variable('POSTGRESQL_DEFAULT')):
-            return adbc_driver_postgresql.dbapi.connect(
-                system.decr(value=load.variable('POSTGRESQL_URI')) % 
-                {'db': database}, autocommit=True
-            ).cursor()
+            return database
         raise Exception('The database was not declared.')
     
     @staticmethod
-    def columns(*, schema: str, table: str, database: str | None = None) -> list:
+    def columns(schema: str, *, table: str, database: str | None = None) -> list:
         if schema and table:
             with postgresql.__connect(database) as conn:
-                conn.execute(load.variable('SELECT_COMMAND') % (schema,table,''))
+                conn.execute(load.variable('SELECT') % (schema,table,''))
                 return [column[0] for column in conn.description]
 
     @staticmethod
     def select(
-        *, schema: str, table: str, params='', 
+        schema: str, *,  table: str, params='', 
         database: str | None = None
     ):
         if schema and table:
             with postgresql.__connect(database) as conn:
-                conn.execute(load.variable('SELECT_COMMAND') % (schema,table,params))
+                conn.execute(load.variable('SELECT') % (schema,table,params))
                 return conn.fetch_arrow_table()
 
     @staticmethod
     def adbc(
-        *, data: object, schema: str, table: str, 
+        schema: str, *, table: str, data: object,
         database: str | None = None
     ):
         if data and schema and table:
@@ -44,7 +57,7 @@ class postgresql:
                     db_schema_name=schema, table_name=table, 
                     data=data, mode='append'
                 )
-            return postgresql.select(schema, table)
+            return postgresql.select(schema, table=table)
 
     @add.exception
     @staticmethod
