@@ -16,7 +16,7 @@ class httpEx:
                         headers={'User-Agent': load.variable('HEADERS')}
                     )
                 ).status_code == 200:
-                    kwargs['response'] = response.text
+                    kwargs['response'] = response
                     return func(**kwargs)
                 raise Exception(response.status_code, response.text)
             raise Exception('URL?')
@@ -32,8 +32,24 @@ class httpEx:
         if not kwargs.get('attrs'):
             kwargs['attrs'] = {}
         return BeautifulSoup(
-            kwargs.get('response'), kwargs.get('type') ### <-- 'xml' or 'lxml'
+            kwargs.get('response').text, kwargs.get('type') ### <-- 'xml' or 'lxml'
         ).find_all(kwargs.get('tag'), attrs=kwargs.get('attrs'))
+
+    @getdata
+    @staticmethod
+    def save(**kwargs):
+        if not kwargs.get('filename'):
+            kwargs['filename'] = load.path(kwargs.get('url')).name
+        with open(
+            (
+                savein := load.path(
+                    kwargs.get('savein'), 
+                    join=kwargs.get('filename')
+                )
+            ), 'wb'
+        ) as handler:
+            handler.write(kwargs.get('response').content)
+        load.info(str(savein))
         
     @staticmethod
     def checkIP(**kwargs):
