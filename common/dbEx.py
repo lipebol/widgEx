@@ -15,12 +15,18 @@ class postgresql:
         ).cursor()
 
     @staticmethod
-    def sizedb(database: str | None = None):
-        with postgresql.__connect(
-            (database := postgresql.isdb(database))
-        ) as conn:
-            conn.execute(load.variable('SIZEDB') % database)
-            return "".join(conn.fetchone())
+    def sizedb(target: str, *, database: str | None = None):
+        if len((target := target.lower().split())) == 2:
+            with postgresql.__connect(
+                (database := postgresql.isdb(database))
+            ) as conn:
+                conn.execute(load.variable('SIZEDB') % database)
+                if (sizedb := "".join(conn.fetchone()).lower().split()):
+                    load.info(sizedb)
+                    if target[1] == sizedb[1] and int(target[0]) <= int(sizedb[0]):
+                        raise Exception('The specified target was hit.')
+                return True
+        raise Exception('Please specify the desired limit in the format: <size> <unit>')
     
     @add.exception
     @staticmethod
@@ -49,7 +55,7 @@ class postgresql:
     @staticmethod
     def adbc(
         schema: str, *, table: str, data: object,
-        database: str | None = None
+        return_id: bool = True, database: str | None = None
     ):
         if data and schema and table:
             with postgresql.__connect(database) as conn:
@@ -58,12 +64,14 @@ class postgresql:
                     data=data, mode='append'
                 )
             load.info(f"Inserted {data.num_rows} rows in {schema}.{table}")
-            return postgresql.select(
-                schema, table=table, 
-                params="WHERE id IN (%s)" % ",".join(
-                    [f"'{id}'" for id in data.select([2]).to_pydict()['id']]
+            if return_id:
+                return postgresql.select(
+                    schema, table=table, 
+                    params="WHERE id IN (%s)" % ",".join(
+                        [f"'{id}'" for id in data.select(["id"]).to_pydict()['id']]
+                    )
                 )
-            )
+            return None
         load.info("No data was found to insert.")
 
     @add.exception
