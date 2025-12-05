@@ -7,6 +7,7 @@ import json
 from logging import basicConfig, info, INFO
 from os import environ, getenv, path
 from pathlib import Path
+from pyarrow import csv as arrowcsv
 from pytz import timezone
 from subprocess import run, PIPE
 from time import sleep
@@ -30,7 +31,7 @@ class load:
     def schemadb():
         if (
             schemadb := load.variable(
-                load.__caller(currentframe().f_back).upper() + 'SCHEMADB'
+                ''.join([load.__caller(currentframe().f_back).upper(),'SCHEMADB'])
             )
         ): 
             return schemadb
@@ -39,7 +40,7 @@ class load:
     @staticmethod
     def quiet(func):
         def wrapper(*args, **kwargs):
-            sleep(1)
+            sleep(3)
             return func(*args, **kwargs)
         return wrapper
 
@@ -101,6 +102,10 @@ class load:
         return __zip_files
 
     @staticmethod
+    def csv_files():
+        return load.__files('CSV_FILES', load.__caller(currentframe().f_back))
+
+    @staticmethod
     def unzip(zip_file: object, suffix=None) -> str:
         def extract(zip_obj: object, suffix: str, path: str):
             for file in zip_obj.namelist():
@@ -114,6 +119,17 @@ class load:
                     )
                 )
             return zip_obj.extractall(zip_file.parent)
+
+    @staticmethod
+    def readcsv(csv_file: str, fields: list, types: dict, sep=None) -> object:
+        load.info(f"Reading file... ({csv_file})")
+        return arrowcsv.read_csv(
+            csv_file,
+            parse_options=arrowcsv.ParseOptions(delimiter=sep if sep else ';'),
+            read_options=arrowcsv.ReadOptions(
+                encoding='latin1', column_names=fields, skip_rows=1
+            ), convert_options=arrowcsv.ConvertOptions(column_types=types)
+        )
 
     @staticmethod
     def tmpfile(*, path: str, filename: str | None = None) -> str:
