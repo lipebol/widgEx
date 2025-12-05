@@ -1,5 +1,5 @@
-from .addEx import add
 from .loadEx import load, system
+from .notifEx import notific
 import adbc_driver_postgresql.dbapi
 from pymongo import MongoClient
 from pymongoarrow.monkey import patch_all
@@ -28,7 +28,7 @@ class postgresql:
                 return True
         raise Exception('Please specify the desired limit in the format: <size> <unit>')
     
-    @add.exception
+    @notific.exception
     @staticmethod
     def isdb(database: str | None) -> str:
         if (database := database or load.variable('POSTGRESQL_DEFAULT')):
@@ -74,7 +74,7 @@ class postgresql:
             return None
         load.info("No data was found to insert.")
 
-    @add.exception
+    @notific.exception
     @staticmethod
     def setconfig(database: str | None = None):
         config.db('POSTGRESQL_DEFAULT', database)
@@ -114,7 +114,7 @@ class mongodb:
         if not many:
             return mongodb.connect(database, collection).insert_one(data).inserted_id
 
-    @add.exception
+    @notific.exception
     @staticmethod
     def setconfig(database: str | None = None):
         config.db('MONGODB_DEFAULT', database)
