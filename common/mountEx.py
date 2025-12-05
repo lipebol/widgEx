@@ -22,7 +22,7 @@ class Daylist:
 
 @dataclass
 class Event_Date:
-    dateTime: str = field(default=load.now())
+    dateTime: str
     timeZone: str = field(default=load.timezone_default())
 
 @dataclass
