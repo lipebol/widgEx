@@ -24,8 +24,8 @@ class load:
     )
 
     @staticmethod
-    def widgex():
-        return load.__caller(currentframe().f_back)
+    def widgex(caller=None):
+        return load.__caller(currentframe().f_back if not caller else caller)
 
     @staticmethod
     def schemadb():
