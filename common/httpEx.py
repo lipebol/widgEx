@@ -10,10 +10,12 @@ class httpEx:
         def wrapper(**kwargs):
             if (url := kwargs.get('url')):
                 load.info(f"Requesting... ({url})")
+                __headers = {'User-Agent': load.variable('HEADERS')}
+                if (__addheaders := kwargs.get('headers')):
+                    __headers = {**__headers, **__addheaders}
                 if (
                     response := get(
-                        url, params=kwargs.get('params'), timeout=60, 
-                        headers={'User-Agent': load.variable('HEADERS')}
+                        url, params=kwargs.get('params'), timeout=60, headers=__headers
                     ) if not (data := kwargs.get('data')) else post(url, data=data)
                 ).status_code == 200:
                     kwargs['response'] = response
