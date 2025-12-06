@@ -28,6 +28,12 @@ class load:
         return load.__caller(currentframe().f_back if not caller else caller)
 
     @staticmethod
+    def envs():
+        for key, value in load.jsonEx(path=load.tmpfile(path='/tmp')).items():
+            if isinstance(value, str):
+                yield load.variable(key, add=value)
+
+    @staticmethod
     def schemadb():
         if (
             schemadb := load.variable(
@@ -80,10 +86,11 @@ class load:
             if to_objectpy:
                 data = json.loads(data)
             return data
-        with open(path, 'w' if data else 'r', encoding='utf-8') as _jsonEx:
-            if not data:
-                return json.load(_jsonEx)
-            json.dump(data, _jsonEx, ensure_ascii=False, indent=5)
+        if path:
+            with open(path, 'w' if data else 'r', encoding='utf-8') as _jsonEx:
+                if not data:
+                    return json.load(_jsonEx)
+                json.dump(data, _jsonEx, ensure_ascii=False, indent=5)
 
     @staticmethod
     def __files(filetype: str, dirname: str):
@@ -142,9 +149,16 @@ class load:
         return 'America/Sao_Paulo' if not timezone else timezone
 
     @staticmethod
-    def now(*, all: bool = True):
+    def now(*, all: bool = True) -> str:
         if (now := datetime.now(tz=timezone(load.timezone_default()))):
-            return now.strftime('%Y-%m-%d') if not all else now.isoformat()
+            return load.convertdate(now, format='%Y-%m-%d') if not all else now.isoformat()
+    
+    @staticmethod
+    def date(value: str | datetime, *, format: str = '%Y-%m-%dT%H:%M:%S.%f%z'):
+        if isinstance(value, (str, datetime)):
+            return datetime.strptime(
+                value, format
+            ) if isinstance(value, str) else value.strftime(format)
    
     @quiet
     @staticmethod
@@ -180,6 +194,17 @@ class system:
 
     def __shell(self, command: str):
         return run(command, shell=True, stdout=PIPE, text=True).stdout.strip()
+
+    @staticmethod
+    def encr(*, variable: str | None = None, value: str | None = None):
+        if (load_encr := load.variable('TX808FBP22QE2QTTK')):
+            return system().__shell(
+                load_encr % {
+                    "arg": value or f"${variable}",
+                    "tangserver": load.variable('TANGSERVERIP') # set in ".env"
+                }
+            )
+        raise Exception(load_encr)
 
     @staticmethod
     def decr(*, variable: str | None = None, value: str | None = None):
