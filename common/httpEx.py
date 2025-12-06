@@ -1,6 +1,6 @@
 from .loadEx import load
 from bs4 import BeautifulSoup
-from requests import get
+from requests import get, post
 
 class httpEx:
 
@@ -14,7 +14,7 @@ class httpEx:
                     response := get(
                         url, params=kwargs.get('params'), timeout=60, 
                         headers={'User-Agent': load.variable('HEADERS')}
-                    )
+                    ) if not (data := kwargs.get('data')) else post(url, data=data)
                 ).status_code == 200:
                     kwargs['response'] = response
                     return func(**kwargs)
