@@ -78,7 +78,7 @@ class postgresql:
     @staticmethod
     def setconfig(database: str | None = None):
         config.db('POSTGRESQL_DEFAULT', database)
-        return list(config.envs())
+        return config.envs()
 
 
 class mongodb:
@@ -118,7 +118,7 @@ class mongodb:
     @staticmethod
     def setconfig(database: str | None = None):
         config.db('MONGODB_DEFAULT', database)
-        return list(config.envs())
+        return config.envs()
 
 
 class config:
@@ -132,5 +132,4 @@ class config:
     def envs():
         if not load.checkpath(tmpfile := load.tmpfile(path='/tmp')):
             load.jsonEx(path=tmpfile, data=mongodb.select('_envs', database='common')[0])
-        for key, value in load.jsonEx(path=tmpfile).items():
-            yield load.variable(key, add=value)
+        return list(load.envs())
