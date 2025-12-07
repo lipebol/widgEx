@@ -1,24 +1,69 @@
+from .loadEx import load, system
+from .httpEx import httpEx
 from googleapiclient.discovery import build
 from google.oauth2 import service_account
-from .loadEx import load, system
 
-
-class authentication:
+class auth:
     
-    def __authorize(self, auth: str | None, scope: str | None) -> object:
-        if auth and scope:
-            return service_account.Credentials.from_service_account_info(
-                load.jsonEx(data=system.decr(variable=auth), to_objectpy=True), 
-                scopes=[system.decr(variable=scope)]
-            )
-        
+    def __google(self, _auth: str | None, _scope: str | None) -> object:
+        return service_account.Credentials.from_service_account_info(
+            load.jsonEx(data=system.decr(variable=_auth), to_objectpy=True), 
+            scopes=[system.decr(variable=_scope)]
+        )
+    
     @staticmethod
-    def service(
-        *, name: str, version: str, key: str | None = None, 
-        auth: str | None = None, scope: str | None = None
+    def googleservice(
+        *, name: str, version: str, _auth: str | None = None, 
+        _scope: str | None = None, _authkey: str | None = None,
     ) -> object:
+        if _auth and _scope:
+            _auth = auth().__google(_auth, _scope)
+        elif _authkey:
+            _authkey = system.decr(variable=_authkey)
         return build(
-            name, version, developerKey=system.decr(variable=key) if key else key, 
-            credentials=authentication().__authorize(auth, scope), 
+            name, version, developerKey=_authkey, credentials=_auth, 
             cache_discovery=False
         )
+
+    @property
+    def __spotify(self):
+        if (data := load.jsonEx(data=load.variable('SPOTIFYAPI'), to_objectpy=True)):
+            if not (token := data.get('token')) or (
+                load.date(load.now())-load.date(data.get('created_at'))
+            ).total_seconds() >= 3600:
+                if (
+                    token := system.encr(
+                        value = httpEx.fetch(
+                            url = data.get('get_token'), data = {
+                                **(params := data.get('params')), 
+                                "client_id": system.decr(value=params.get('client_id')),
+                                "client_secret": system.decr(value=params.get('client_secret'))
+                            }
+                        ).get('access_token')
+                    )
+                ):
+                    if (alldata := load.jsonEx(path=(tmpfile := load.tmpfile(path='/tmp')))):
+                        alldata['SPOTIFYAPI'] = load.jsonEx(
+                            data={**data, "token": token, "created_at": load.now()}, 
+                            to_string=True
+                        )
+                        load.jsonEx(path=tmpfile, data=alldata)
+                        load.envs()
+            return data.get('get_data'), data.get('set_token'), token, data.get('del_keys')
+
+    @staticmethod
+    def spotify(func):
+        def wrapper(metadata):
+            get_data, set_token, token, del_keys = auth().__spotify
+            if token and isinstance(metadata, dict):
+                if (
+                    data := httpEx.fetch(
+                        url=get_data % {"id": metadata.get('trackid').strip('/com/spotify/track/')}, 
+                        headers={"Authorization": set_token % {"token": system.decr(value=token)}}
+                    )
+                ) and (metadata := {**metadata, **data}):
+                    for key in del_keys.split():
+                        del metadata[key]
+                return func(metadata)
+            raise Exception('There was probably an error while generating the token.')
+        return wrapper
