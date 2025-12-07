@@ -151,7 +151,7 @@ class load:
     @staticmethod
     def now(*, all: bool = True) -> str:
         if (now := datetime.now(tz=timezone(load.timezone_default()))):
-            return load.convertdate(now, format='%Y-%m-%d') if not all else now.isoformat()
+            return load.date(now, format='%Y-%m-%d') if not all else now.isoformat()
     
     @staticmethod
     def date(value: str | datetime, *, format: str = '%Y-%m-%dT%H:%M:%S.%f%z'):
