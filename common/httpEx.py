@@ -6,7 +6,7 @@ class httpEx:
 
     @load.quiet
     @staticmethod
-    def getdata(func):
+    def response(func):
         def wrapper(**kwargs):
             if (url := kwargs.get('url')):
                 load.info(f"Requesting... ({url})")
@@ -24,7 +24,13 @@ class httpEx:
             raise Exception('URL?')
         return wrapper
     
-    @getdata
+
+    @response
+    @staticmethod
+    def fetch(**kwargs):
+        return kwargs.get('response').json()
+
+    @response
     @staticmethod
     def scrape(**kwargs) -> list:
         if not kwargs.get('type'):
@@ -37,7 +43,7 @@ class httpEx:
             kwargs.get('response').text, kwargs.get('type') ### <-- 'xml' or 'lxml'
         ).find_all(kwargs.get('tag'), attrs=kwargs.get('attrs'))
 
-    @getdata
+    @response
     @staticmethod
     def save(**kwargs):
         if not kwargs.get('filename'):
@@ -56,7 +62,7 @@ class httpEx:
     @staticmethod
     def checkIP(**kwargs):
 
-        @httpEx.getdata
+        @response
         def ip(**kwargs):
             return kwargs.get('response').strip()
         
