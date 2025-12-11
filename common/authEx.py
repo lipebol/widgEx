@@ -25,8 +25,8 @@ class auth:
             cache_discovery=False
         )
 
-    @property
-    def __spotify(self):
+    @staticmethod
+    def __spotify(trackid: str):
         if (data := load.jsonEx(data=load.variable('SPOTIFYAPI'), to_objectpy=True)):
             if not (token := data.get('token')) or (
                 load.date(load.now())-load.date(data.get('created_at'))
@@ -49,21 +49,20 @@ class auth:
                         )
                         load.jsonEx(path=tmpfile, data=alldata)
                         load.envs()
-            return data.get('get_data'), data.get('set_token'), token, data.get('del_keys')
+            return token, data.get('get_data') % {'id': trackid.strip('/com/spotify/track/')}
 
     @staticmethod
     def spotify(func):
         def wrapper(metadata):
-            get_data, set_token, token, del_keys = auth().__spotify
+            token, get_data = auth.__spotify((trackid := metadata.get('trackid')))
             if token and isinstance(metadata, dict):
                 if (
                     data := httpEx.fetch(
-                        url=get_data % {"id": metadata.get('trackid').strip('/com/spotify/track/')}, 
-                        headers={"Authorization": set_token % {"token": system.decr(value=token)}}
-                    )
-                ) and (metadata := {**metadata, **data}):
-                    for key in del_keys.split():
-                        del metadata[key]
-                return func(metadata)
+                        headers={'Content-Type': 'application/json', 'AuthExternal': token},
+                        data=load.jsonEx(data={'query': get_data}, to_string=True),
+                        url="http://localhost/api/v2/graphql/"   
+                    ).get('data').get('spotifyAPI')
+                ) and (metadata := {'trackid': trackid, **data.get('data')[0]}):
+                    return func(metadata)
             raise Exception('There was probably an error while generating the token.')
         return wrapper
