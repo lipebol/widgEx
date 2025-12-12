@@ -49,20 +49,21 @@ class auth:
                         )
                         load.jsonEx(path=tmpfile, data=alldata)
                         load.envs()
-            return token, data.get('get_data') % {'id': trackid.strip('/com/spotify/track/')}
+            return token, data.get('get_data') % {'id': trackid.split('/')[-1]}
 
     @staticmethod
     def spotify(func):
-        def wrapper(metadata):
-            token, get_data = auth.__spotify((trackid := metadata.get('trackid')))
-            if token and isinstance(metadata, dict):
-                if (
-                    data := httpEx.fetch(
+        def wrapper(trackid: str):
+            token, get_data = auth.__spotify(trackid)
+            if token and (
+                    metadata := httpEx.fetch(
                         headers={'Content-Type': 'application/json', 'AuthExternal': token},
                         data=load.jsonEx(data={'query': get_data}, to_string=True),
                         url="http://localhost/api/v2/graphql/"   
                     ).get('data').get('spotifyAPI')
-                ) and (metadata := {'trackid': trackid, **data.get('data')[0]}):
+                ):
+                    if (get_data := metadata.get('data')):
+                        metadata = get_data[0]
                     return func(metadata)
             raise Exception('There was probably an error while generating the token.')
         return wrapper
