@@ -1,131 +1,103 @@
-from common.addEx import add
+from bson.objectid import ObjectId
+from common.authEx import auth
 from common.dbEx import mongodb
-from common.httpEx import httpEx
 from common.loadEx import load, system
 from common.mountEx import mount
-from time import sleep
+from common.notifEx import notific
+import pyarrow as arrow
 
 class init:
-
-    @add.exception
+ 
     @staticmethod
-    def metadata(name: str) -> dict:
-        if (dbus := system.dbus(projectname=name)):
-            return dict((key.split(':')[1], value) for key, value in dbus.items())
+    def metadata(widgEx: str) -> dict:
+        if (dbus := system.dbus(service=widgEx)):
+            return dict((key.split(':')[1], value) for key, value in dbus.items()) 
 
-    @add.exception
     @staticmethod
-    def trackid(trackid: str | None) -> str | None:
-        if trackid and 'ad' not in trackid and (
-            track := mongodb.select((collection := '_trackid'), _id=True)[0]
-        ).get('id') != trackid:
-            return mongodb.update(
-                collection, filter={'_id': track.get('_id')}, 
-                update={'id': trackid}
-            )
-
-    @add.exception
-    @staticmethod
-    def trackfind(trackid: str) -> str | list | None:
-        if (
-            track := mongodb.select(
-                'tracks', filter={'trackid': trackid}, fields={'_id': 1}
-            )
-        ):
-            if (
-                daylist := mongodb.select(
-                    'daylists', filter={
-                        'date': load.now(all=False),
-                        'track': (track := track[0].get('_id'))
-                    }, fields={'listen': 1}
+    def genres(genre: dict, collection='genres') -> str:
+        if isinstance(genre, dict):
+            return find[0].get('_id') if (
+                find := mongodb.select(
+                    collection, filter=genre, fields={'_id': 1}
                 )
-            ):
-                return daylist
-            return track
+            ) else mongodb.insert(collection, data=genre)
 
-    @add.exception
     @staticmethod
-    def genrefind(genre: dict, collection='genres') -> str:
-        if genre and isinstance(genre, dict):
-            return genre[0].get('_id') if (
-                genre := mongodb.select(
-                    collection, filter=(genre_data := genre), 
-                    fields={'_id': 1}
-                )
-            ) else mongodb.insert(collection, data=genre_data)
+    def artists(artists: list) -> object:
+        for artist in artists:
+            if (id := artist.get('id')):
+                yield ObjectId(id)
+            elif (genres := artist.get('genres')):
+                artist['genres'] = list(map(init.genres, genres))
+                yield mongodb.insert('artists', data=artist)
 
-
-    @add.exception
     @staticmethod
-    def artistfind(artist: str, collection='artists'):
-        if (_artist := mongodb.select(
-                collection, filter={
-                    'name': (artist := ''.join(artist))
-                }, fields={'_id': 1}
+    def markets(available_markets: list) -> object:
+        ISO_3166_1 = mongodb.select('ISO_3166-1', database='common', _id=True)
+        for join_type in ['right outer','left anti']:
+            yield ISO_3166_1.join(
+                arrow.Table.from_arrays(
+                    [arrow.array(available_markets)], names=['code']
+                ), keys='code', join_type=join_type
+            ).select([0]).drop_null().to_pydict().get('_id')
+    
+    @staticmethod
+    def album(album: dict) -> object:
+        if (id := album.get('id')):
+            return ObjectId(id)
+        elif (markets := album.get('available_markets')):
+            album['available_markets'], album['no_available_markets'] = tuple(
+                init.markets(album.get('available_markets'))
             )
-        ):
-            return _artist[0].get('_id')
-        if (
-            _scrape := httpEx.scrape(
-                url=(everynoise := load.variable('EVERYNOISE')) + 
-                'lookup.cgi', params={'who': artist}
-            )
-        ):
-            _artist = mount.data(name=artist)
-            for idx, i in enumerate(_scrape):
-                _url = everynoise + _scrape[idx]['href']
-                if 'â' in i.text:
-                    _artist['profile'] = _url
-                else:
-                    _artist['genres'].append(
-                        init.genrefind(
-                            mount.data(name=i.text, url=_url)
-                        )
+            return mongodb.insert('albums', data=album)
+
+    @staticmethod
+    def daylist(track: str | dict, collection='daylists') -> str | dict:
+        if isinstance(track, dict):
+            if (track := track.get('id')):
+                if (
+                    find := mongodb.select(
+                        collection, filter=(
+                            daylistfilter := {
+                                'date': load.now(all=False), 'track': track
+                            }
+                        ), fields={'listen': 1, '_id': 0}
                     )
-            return mongodb.insert(collection, data=_artist)
-        return 'Not Found.'
-
-    @add.exception
-    @staticmethod
-    def daylist(track: str | list, collection='daylists') -> str | dict:
-        if isinstance(track, list):
-            return mongodb.update(
-                collection, filter={
-                    '_id': (track := track[0]).get('_id')
-                }, update={'listen': track.get('listen')+1}
-            )
+                ):
+                    return mongodb.update(
+                        collection, filter=daylistfilter, 
+                        update={'listen': find[0].get('listen')+1}
+                    )
         return mongodb.insert(
-            collection, data=mount.data(
-                track=track, date=load.now(all=False)
-            )
+            collection, data=mount.data(track=track, date=load.now(all=False))
         )
 
-    @add.exception
+    @auth.spotify
     @staticmethod
-    def spotifEx(metadata: dict):
-        del metadata['albumArtist']
-        metadata['artist'] = init.artistfind(metadata.get('artist'))
-        return init.daylist(mongodb.insert('tracks', data=metadata))
+    def spotifEx(track: dict):
+        if not (error := track.get('error')):
+            if not track.get('id'):
+                track['artists'] = list(init.artists(track.get('artists')))
+                track['album'] = init.album(track.get('album'))
+                track = str(mongodb.insert('tracks', data=track))
+            return init.daylist(track)
+        raise Exception(error)
 
-    @add.exception        
+    @notific.exception
     @staticmethod
-    def run(widgEx: str):
-        if mongodb.setconfig(widgEx):
-            load.info(f'{widgEx}...')
-            if (
-                metadata := init.metadata(widgEx)
-            ) and init.trackid(
-                trackid := metadata.get('trackid')
-            ):
-                if (track := init.trackfind(trackid)):
-                    return load.info(init.daylist(track))
-                return load.info(init.spotifEx(metadata))
+    def run(trackid: str):
+        if (metadata := init.metadata(widgEx)):
+            if (newtrackid := metadata.get('trackid')) != trackid:
+                if '/com/spotify/ad/' not in newtrackid:
+                    load.info(init.spotifEx(newtrackid))
+                    return newtrackid
+            return trackid
 
 if __name__ == '__main__':
     try:
-        while True:
-            init.run('spotifEx')
-            sleep(5)
+        if (trackid := mongodb.setconfig((widgEx := load.widgex()))):
+            while (trackid := init.run(trackid)):
+                load.info(f'{widgEx} ({trackid})')
     except KeyboardInterrupt:
         load.info('Exit.')
     except Exception as error:
