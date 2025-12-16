@@ -92,6 +92,7 @@ class init:
                     load.info(init.spotifEx(newtrackid))
                     return newtrackid
             return trackid
+        return 'Offline'
 
 if __name__ == '__main__':
     try:
