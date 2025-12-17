@@ -5,7 +5,7 @@ from inspect import currentframe, getmodule
 from glob import glob
 import json
 from logging import basicConfig, info, INFO
-from os import environ, getenv, path
+from os import environ, getenv, path, remove
 from pathlib import Path
 from pyarrow import csv as arrowcsv
 from pytz import timezone
@@ -29,9 +29,15 @@ class load:
 
     @staticmethod
     def envs():
-        for key, value in load.jsonEx(path=load.tmpfile(path='/tmp')).items():
-            if isinstance(value, str):
-                yield load.variable(key, add=value)
+        try:
+            for key, value in load.jsonEx(
+                path=(tmpfile := load.tmpfile(path='/tmp'))
+            ).items():
+                if isinstance(value, str):
+                    yield load.variable(key, add=value)
+        except Exception:
+            load.delete(tmpfile)
+            return False
 
     @staticmethod
     def schemadb():
@@ -46,7 +52,7 @@ class load:
     @staticmethod
     def quiet(func):
         def wrapper(*args, **kwargs):
-            sleep(3)
+            sleep(1)
             return func(*args, **kwargs)
         return wrapper
 
@@ -145,6 +151,10 @@ class load:
         )
 
     @staticmethod
+    def delete(file: str):
+        return remove(file)
+
+    @staticmethod
     def timezone_default(timezone: str | None = None) -> str:
         return 'America/Sao_Paulo' if not timezone else timezone
 
@@ -176,12 +186,12 @@ class system:
     def dbus(
         name: str | None = None, objectpath: str | None = None, 
         interface: str | None = None, propertie: str | None = None, 
-        *, projectname: str | None = None
+        *, service: str | None = None
     ) -> dict | None:
         try:
-            if projectname:
+            if service:
                 name, objectpath, interface, propertie = (
-                    load.variable(f'{projectname.upper()}_DBUS_{var}')
+                    load.variable(f'{service.upper()}_DBUS_{var}')
                     for var in ['NAME','OBJECTPATH','INTERFACE','PROPERTIE']
                 )
             return load.jsonEx(
