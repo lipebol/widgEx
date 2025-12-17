@@ -17,7 +17,7 @@ class httpEx:
                     response := get(
                         url, params=kwargs.get('params'), timeout=60, headers=__headers
                     ) if not (data := kwargs.get('data')) 
-                    else post(url, data=data, headers=__headers)
+                    else post(url, data=data, headers=__headers, timeout=60)
                 ).status_code == 200:
                     kwargs['response'] = response
                     return func(**kwargs)
