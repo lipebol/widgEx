@@ -56,14 +56,14 @@ class auth:
         def wrapper(trackid: str):
             token, get_data = auth.__spotify(trackid)
             if token and (
-                    metadata := httpEx.fetch(
+                    track := httpEx.fetch(
                         headers={'Content-Type': 'application/json', 'AuthExternal': token},
                         data=load.jsonEx(data={'query': get_data}, to_string=True),
                         url="http://localhost/api/v2/graphql/"   
                     ).get('data').get('spotifyAPI')
                 ):
-                    if (get_data := metadata.get('data')):
-                        metadata = get_data[0]
-                    return func(metadata)
+                    if (metadata := track.get('data')):
+                        track = metadata[0]
+                    return func(track)
             raise Exception('There was probably an error while generating the token.')
         return wrapper
