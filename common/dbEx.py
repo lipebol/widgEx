@@ -28,7 +28,6 @@ class postgresql:
                 return True
         raise Exception('Please specify the desired limit in the format: <size> <unit>')
     
-    @notific.exception
     @staticmethod
     def isdb(database: str | None) -> str:
         if (database := database or load.variable('POSTGRESQL_DEFAULT')):
@@ -74,7 +73,6 @@ class postgresql:
             return None
         load.info("No data was found to insert.")
 
-    @notific.exception
     @staticmethod
     def setconfig(database: str | None = None):
         config.db('POSTGRESQL_DEFAULT', database)
@@ -95,11 +93,12 @@ class mongodb:
     @staticmethod
     def select(
         collection: str, *, database: str | None = None, 
-        filter: dict = {}, fields: dict = {}, _id: str | bool = False
+        filter: dict = {}, fields: dict = {}, _id: bool = False
     ) -> list:
         _db = mongodb.connect(database, collection)
-        if not filter and not _id:
-            return _db.find_arrow_all({}).drop_columns('_id').to_pylist()
+        if not filter:
+            if (data := _db.find_arrow_all({})):
+                return data.drop_columns('_id') if not _id else data
         return list(_db.find(filter, fields))
 
     @staticmethod
@@ -113,8 +112,8 @@ class mongodb:
     ):
         if not many:
             return mongodb.connect(database, collection).insert_one(data).inserted_id
-
-    @notific.exception
+    
+    @load.quiet
     @staticmethod
     def setconfig(database: str | None = None):
         config.db('MONGODB_DEFAULT', database)
@@ -128,8 +127,16 @@ class config:
         if database:
             return load.variable(env, add=database)
 
+    @notific.exception
     @staticmethod
     def envs():
-        if not load.checkpath(tmpfile := load.tmpfile(path='/tmp')):
-            load.jsonEx(path=tmpfile, data=mongodb.select('_envs', database='common')[0])
-        return list(load.envs())
+        if load.checkpath(tmpfile := load.tmpfile(path='/tmp')):
+            if not (envs := list(load.envs())):
+                if load.checkpath(tmpfile):
+                    raise Exception(error)
+            else:
+                return envs
+        if (dataenv := mongodb.select('_envs', database='common').to_pylist()):
+            load.jsonEx(path=tmpfile, data=dataenv[0])
+            return list(load.envs())
+        raise Exception('Error load envs.')
