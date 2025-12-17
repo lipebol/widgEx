@@ -81,7 +81,7 @@ class init:
                 track['album'] = init.album(track.get('album'))
                 track = str(mongodb.insert('tracks', data=track))
             return init.daylist(track)
-        raise Exception(error)
+        load.info(error)
 
     @notific.exception
     @staticmethod
