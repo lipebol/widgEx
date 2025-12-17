@@ -9,12 +9,6 @@ class Genre:
     url: str
 
 @dataclass
-class Artist:
-    name: str
-    profile: str = field(default='')
-    genres: list = field(default_factory=list)
-
-@dataclass
 class Daylist:
     track: str
     date: str
