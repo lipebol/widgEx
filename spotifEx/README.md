@@ -1,5 +1,5 @@
 <h1 align="center">
-        widgEx
+        spotifEx
 </h1>
 
 
