@@ -4,6 +4,7 @@
 
 
 > inspired by **github.com/Madh93/conky-spotify**
+
 > inspired by **thedeveloperyt.com**
 
 <img src="https://res.cloudinary.com/dfph6kr4e/image/upload/v1766551869/spotifEx.png"/>
