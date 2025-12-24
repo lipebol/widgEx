@@ -5,7 +5,7 @@
 
 > spotifEx: inspired by **github.com/Madh93/conky-spotify**
 
-[](https://res.cloudinary.com/dfph6kr4e/image/upload/v1766551869/spotifEx.png)
+[spotifEx](https://res.cloudinary.com/dfph6kr4e/image/upload/v1766551869/spotifEx.png)
 
 ## :bulb: Autor
 
