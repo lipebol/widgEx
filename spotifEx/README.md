@@ -7,7 +7,7 @@
 
 > inspired by **thedeveloperyt.com**
 
-<img src="https://res.cloudinary.com/dfph6kr4e/image/upload/v1766551869/spotifEx.png"/>
+<img src="https://res.cloudinary.com/dfph6kr4e/image/upload/v1767052179/spotifEx.png"/>
 
 ## :bulb: Autor
 
