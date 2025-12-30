@@ -177,7 +177,7 @@ class load:
 
     @staticmethod
     def __caller(value: object):
-        return path.basename(getmodule(value).__file__).strip('.py')
+        return load.path(path.dirname(getmodule(value).__file__)).name
 
 
 class system:
