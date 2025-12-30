@@ -2,12 +2,11 @@
         spotifEx
 </h1>
 
+<img src="https://res.cloudinary.com/dfph6kr4e/image/upload/v1767052801/spotifEx.png"/>
 
 > **github.com/Madh93/conky-spotify**
 
 > **thedeveloperyt.com**
-
-<img src="https://res.cloudinary.com/dfph6kr4e/image/upload/v1767052801/spotifEx.png"/>
 
 ## :bulb: Autor
 
