@@ -3,11 +3,11 @@
 </h1>
 
 
-> inspired by **github.com/Madh93/conky-spotify**
+> **github.com/Madh93/conky-spotify**
 
-> inspired by **thedeveloperyt.com**
+> **thedeveloperyt.com**
 
-<img src="https://res.cloudinary.com/dfph6kr4e/image/upload/v1767052179/spotifEx.png"/>
+<img src="https://res.cloudinary.com/dfph6kr4e/image/upload/v1767052801/spotifEx.png"/>
 
 ## :bulb: Autor
 
