@@ -1,8 +1,8 @@
-from common.addEx import add
 from common.dbEx import postgresql
 from common.httpEx import httpEx
 from common.loadEx import load, system
 from common.mountEx import mount
+from common.notifEx import notific
 import pyarrow as arrow
 from time import sleep
 from xmltodict import parse
@@ -29,20 +29,17 @@ class init:
             )
         ).join(
             postgresql.select(
-                (schema := load.schemadb()), table= (table := 'divvybikes_files')
+                (schema := load.schemadb()), table=(table := 'files')
             ), keys='id', join_type='left anti'
         )
         if newfiles.num_rows:
-            if (zip_files:= load.zip_files(with_path=False)):
-                zip_files = newfiles.select([0]).join(
-                    arrow.Table.from_pydict({'filename': arrow.array(zip_files)}), 
-                    keys='filename', join_type='left anti'
-                )
-            if (zip_files := zip_files.to_pydict().get('filename')):
-                for zip_file in zip_files:
-                    httpEx.save(
-                        savein=load.dirdownloads(), url=''.join((url,zip_file))
-                    )
+            zip_files = newfiles.select([0]).join(
+                arrow.Table.from_pydict({'filename': arrow.array(zip_files)}), 
+                keys='filename', join_type='left anti'
+            ) if (zip_files:= load.zip_files(with_path=False)) else newfiles
+            if zip_files.num_rows:
+                for zip_file in zip_files.to_pydict().get('filename'):
+                    httpEx.save(savein=load.dirdownloads(), url=''.join((url,zip_file)))
         return postgresql.adbc(data=newfiles, schema=schema, table=table)
 
     @staticmethod
@@ -65,31 +62,31 @@ class init:
             return csv_files
 
     @staticmethod
-    def gte_2020(files: list):
-        if files and (
+    def gte_2020(csv_files: list):
+        if csv_files and (
             columns := postgresql.columns(
-                (schema := load.schemadb()), table= (table := 'divvybikes_gte_2020')
+                (schema := load.schemadb()), table= (table := 'gte_2020')
             )
         ):
-            columnstypes = dict(
+            columns = dict(
                 (col, arrow.string()) if col not in ('started_at','ended_at') 
-                else (col, arrow.timestamp('ms')) for col in columns
+                else (col, arrow.timestamp('ms')) for col in columns 
+                if col not in ('id')
             )
-            for csv_file in sorted(
-                [
-                    csv_file for csv_file in files if 'tripdata' in csv_file or 
+            if (
+                csv_files := [
+                    csv_file for csv_file in csv_files if 'tripdata' in csv_file or 
                     load.path(csv_file).name == 'Divvy_Trips_2020_Q1.csv'
                 ]
             ):
-                if postgresql.sizedb('400 MB') and (
-                    data := load.readcsv(csv_file, columns, columnstypes, sep=',')
-                ):
-                    postgresql.adbc(
-                        data=data, schema=schema, table=table, return_id=False
-                    )
-        raise Exception('')
+                for csv_file in sorted(csv_files):
+                    if (data := load.readcsv(csv_file, columns.keys(), columns, sep=',')):
+                        postgresql.adbc(data=data, schema=schema, table=table, return_id=False)
+                        for file in [csv_file, csv_file.replace('.csv','.zip')]:
+                            load.delete(file)
         
-    @add.exception
+        
+    @notific.exception
     @staticmethod
     def run():
         if postgresql.setconfig((widgEx := load.widgex())):
