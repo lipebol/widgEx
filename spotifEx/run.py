@@ -25,12 +25,11 @@ class init:
     @staticmethod
     def artists(artists: list) -> object:
         for artist in artists:
-            if (id := artist.get('id')):
-                yield ObjectId(id)
-            elif (genres := artist.get('genres')):
+            if (genres := artist.get('genres')):
                 artist['genres'] = list(map(init.genres, genres))
-            yield mongodb.insert('artists', data=artist)
-
+            yield mongodb.insert('artists', data=artist) if not (
+                id := artist.get('id')) else ObjectId(id)
+                
     @staticmethod
     def markets(available_markets: list) -> object:
         ISO_3166_1 = mongodb.select('ISO_3166-1', database='common', _id=True)
@@ -43,14 +42,13 @@ class init:
     
     @staticmethod
     def album(album: dict) -> object:
-        if (id := album.get('id')):
-            return ObjectId(id)
-        elif (markets := album.get('available_markets')):
+        if (markets := album.get('available_markets')):
             album['available_markets'], album['no_available_markets'] = tuple(
                 init.markets(album.get('available_markets'))
             )
-        return mongodb.insert('albums', data=album)
-
+        return mongodb.insert('albums', data=album) if not (
+            id := album.get('id')) else ObjectId(id)
+            
     @staticmethod
     def daylist(track: str | dict, collection='daylists') -> str | dict:
         if isinstance(track, dict):
