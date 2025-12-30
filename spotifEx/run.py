@@ -29,7 +29,7 @@ class init:
                 yield ObjectId(id)
             elif (genres := artist.get('genres')):
                 artist['genres'] = list(map(init.genres, genres))
-                yield mongodb.insert('artists', data=artist)
+            yield mongodb.insert('artists', data=artist)
 
     @staticmethod
     def markets(available_markets: list) -> object:
@@ -49,7 +49,7 @@ class init:
             album['available_markets'], album['no_available_markets'] = tuple(
                 init.markets(album.get('available_markets'))
             )
-            return mongodb.insert('albums', data=album)
+        return mongodb.insert('albums', data=album)
 
     @staticmethod
     def daylist(track: str | dict, collection='daylists') -> str | dict:
@@ -86,19 +86,20 @@ class init:
     @notific.exception
     @staticmethod
     def run(trackid: str):
-        if (metadata := init.metadata(widgEx)):
-            if (newtrackid := metadata.get('trackid')) != trackid:
-                if '/com/spotify/ad/' not in newtrackid:
-                    load.info(init.spotifEx(newtrackid))
-                    return newtrackid
-            return trackid
-        return 'Offline'
+        if mongodb.setconfig((widgEx := load.widgex())):
+            if (metadata := init.metadata(widgEx)):
+                if (newtrackid := metadata.get('trackid')) != trackid:
+                    if '/com/spotify/ad/' not in newtrackid:
+                        load.info(init.spotifEx(newtrackid))
+                        return newtrackid
+                return trackid
+            return 'Offline'
 
 if __name__ == '__main__':
     try:
-        if (trackid := mongodb.setconfig((widgEx := load.widgex()))):
-            while (trackid := init.run(trackid)):
-                load.info(f'{widgEx} ({trackid})')
+        trackid = None
+        while (trackid := init.run(trackid)):
+            load.info(f'{load.widgex()} ({trackid})')
     except KeyboardInterrupt:
         load.info('Exit.')
     except Exception as error:
