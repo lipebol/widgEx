@@ -8,6 +8,7 @@ from logging import basicConfig, info, INFO
 from os import environ, getenv, path, remove
 from pathlib import Path
 from pyarrow import csv as arrowcsv
+from pyarrow import dataset as arrowdataset
 from pytz import timezone
 from subprocess import run, PIPE
 from time import sleep
@@ -100,10 +101,7 @@ class load:
 
     @staticmethod
     def __files(filetype: str, dirname: str):
-        return glob(
-            load.variable(filetype) % load.dirdownloads(dirname), 
-            recursive=True
-        )
+        return glob(load.variable(filetype) % load.dirdownloads(dirname), recursive=True)
     
     @staticmethod
     def zip_files(with_path=True):
@@ -137,18 +135,21 @@ class load:
     def readcsv(csv_file: str, fields: list, types: dict, sep=None) -> object:
         load.info(f"Reading file... ({csv_file})")
         return arrowcsv.read_csv(
-            csv_file,
-            parse_options=arrowcsv.ParseOptions(delimiter=sep if sep else ';'),
+            csv_file, parse_options=arrowcsv.ParseOptions(delimiter=sep if sep else ';'),
             read_options=arrowcsv.ReadOptions(
                 encoding='latin1', column_names=fields, skip_rows=1
             ), convert_options=arrowcsv.ConvertOptions(column_types=types)
         )
 
     @staticmethod
+    def dataset(datafile, *, types: list, typefile: str, fs: object):
+        return arrowdataset.dataset(
+            datafile, schema=types, format=typefile, filesystem=fs
+        ).to_batches(batch_size=10000)
+
+    @staticmethod
     def tmpfile(*, path: str, filename: str | None = None) -> str:
-        return load.path(
-            path, join='tmp.json' if not filename else f'{filename}.json'
-        )
+        return load.path(path, join='tmp.json' if not filename else f'{filename}.json')
 
     @staticmethod
     def delete(file: str):
