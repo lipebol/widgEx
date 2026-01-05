@@ -57,12 +57,16 @@ class postgresql:
         return_id: bool = True, database: str | None = None
     ):
         if data and schema and table:
+            if 'pyarrow.lib.Table' not in str(type(data)):
+                data, rows = data.to_batches(), data.count_rows()
+            else:
+                rows = data.num_rows
             with postgresql.__connect(database) as conn:
                 conn.adbc_ingest(
                     db_schema_name=schema, table_name=table, 
                     data=data, mode='append'
                 )
-            load.info(f"Inserted {data.num_rows} rows in {schema}.{table}")
+            load.info(f"Inserted {rows} rows in {schema}.{table}")
             if return_id:
                 return postgresql.select(
                     schema, table=table, 
