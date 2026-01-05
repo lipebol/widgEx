@@ -143,9 +143,10 @@ class load:
 
     @staticmethod
     def dataset(datafile, *, types: list, typefile: str, fs: object):
+        load.info(f"Reading file... ({datafile})")
         return arrowdataset.dataset(
             datafile, schema=types, format=typefile, filesystem=fs
-        ).to_batches(batch_size=10000)
+        )
 
     @staticmethod
     def tmpfile(*, path: str, filename: str | None = None) -> str:
