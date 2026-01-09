@@ -39,15 +39,19 @@ class init:
             postgresql.select((schema := load.schemadb()), table='files'), 
             keys='id', join_type='left anti'
         )
-        if newfiles.num_rows and (schematypes := init.columns_types()):
+        if newfiles.num_rows and (schematypes := arrow.schema(init.columns_types())):
             for zipfile in newfiles.select([0]).to_pydict().get('filename'):
                 if 'tripdata' in (datafile := zipfile.replace('zip','csv')):
-                    if (
-                        data := load.dataset(
-                            datafile, types=arrow.schema(schematypes), typefile='csv', 
-                            fs=filesystem('zip', fo=f'{url}{zipfile}')
-                        )
-                    ):
+                    if (fszip := filesystem('zip', fo=f'{url}{zipfile}')):
+                        try:
+                            data = load.dataset(
+                                datafile, types=schematypes, typefile='csv', fs=fszip
+                            )
+                        except FileNotFoundError:
+                            data = load.dataset(
+                                fszip.ls("")[0].get('filename'), 
+                                types=schematypes, typefile='csv', fs=fszip
+                            )
                         postgresql.adbc(
                             data=data, schema=schema, table='gte_2020', return_id=False
                         )
