@@ -1,0 +1,32 @@
+query {
+  DivvyBikes(between: "2020-06-23;2020-06-24") {
+    ...on DivvyBikes {
+      data {
+        ride_id
+        rideable_type
+        started_at
+        ended_at
+        start_station_name
+        start_station_id
+        end_station_name
+        end_station_id
+        start_lat
+        start_lng
+        end_lat
+        end_lng
+        member_casual
+      }
+    }
+
+    ...on Info {
+      total
+      pages
+    }
+
+    ...on Errors {
+      error
+      message
+      status_code
+    }
+  }
+}
