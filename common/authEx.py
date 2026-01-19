@@ -1,5 +1,8 @@
 from .loadEx import load, system
 from .httpEx import httpEx
+from .mountEx import mount
+from inspect import stack
+from pyarrow import flight, _flight
 from googleapiclient.discovery import build
 from google.oauth2 import service_account
 
@@ -67,3 +70,35 @@ class auth:
                     return func(track)
             raise Exception('There was probably an error while generating the token.')
         return wrapper
+
+    
+    @staticmethod
+    def arrowflightrpc(uri: str, action: str):
+        if (uri := load.uri(uri)) and (
+            client := flight.FlightClient(f"{uri.scheme}://{uri.hostname}:{uri.port}")
+        ) and (
+            auth := flight.FlightCallOptions(
+                headers=[client.authenticate_basic_token(uri.username,uri.password)]
+            )
+        ) and (descriptor := flight.FlightDescriptor):
+            if (
+                info := client.get_flight_info(
+                    descriptor.for_command(
+                        action if stack()[1].function != 'insert' 
+                        else load.variable('SELECT') % (action,'')
+                    ), auth
+                )
+            ):
+                mountinfo = mount.data(
+                    schema=info.schema, total_records=info.total_records, 
+                    total_bytes=info.total_bytes, classname='Arrow_Flight_RPC_Info'
+                )
+                if info.endpoints:
+                    for endpoint in info.endpoints:
+                        mountinfo.ticket = endpoint.ticket
+                        mountinfo.expiration_time = endpoint.expiration_time
+                return mount.data(
+                    conn=mount.data(
+                        client=client, authenticate=auth, descriptor=descriptor
+                    ), info=mountinfo
+                )
