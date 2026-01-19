@@ -2,7 +2,7 @@ from .loadEx import load, system
 from .httpEx import httpEx
 from .mountEx import mount
 from inspect import stack
-from pyarrow import flight, _flight
+from pyarrow import flight
 from googleapiclient.discovery import build
 from google.oauth2 import service_account
 

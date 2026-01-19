@@ -1,6 +1,7 @@
 from .loadEx import load
 from dataclasses import asdict, dataclass, field
 from inspect import getmembers, isclass, signature
+from pyarrow import _flight
 from sys import modules
 
 @dataclass
@@ -13,6 +14,25 @@ class Daylist:
     track: str
     date: str
     listen: int = field(default=1)
+
+@dataclass
+class Arrow_Flight_RPC_Conn:
+    client: _flight.FlightClient
+    authenticate: _flight.FlightCallOptions
+    descriptor: _flight.FlightDescriptor
+
+@dataclass
+class Arrow_Flight_RPC_Info:
+    schema: _flight.SchemaResult = field(default=_flight.SchemaResult)
+    total_records: int = field(default=0)
+    total_bytes: int = field(default=0)
+    ticket: _flight.Ticket = field(default=_flight.Ticket)
+    expiration_time: str = field(default='')
+
+@dataclass
+class Arrow_Flight_RPC:
+    conn: Arrow_Flight_RPC_Conn
+    info: Arrow_Flight_RPC_Info
 
 @dataclass
 class Event_Date:
@@ -54,6 +74,10 @@ class mount:
                 if list(classEx.values())[0] == list(kwargs.keys()):
                     classname = ''.join(classEx.keys())
                     break
-        return asdict(globals()[classname](**kwargs))
+        if (data := globals()[classname](**kwargs)):
+            if 'Arrow_Flight' in classname:
+                return data
+            return asdict(data)
+        
         
         
