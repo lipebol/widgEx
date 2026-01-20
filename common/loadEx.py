@@ -10,6 +10,7 @@ from pathlib import Path
 from pyarrow import csv as arrowcsv
 from pyarrow import dataset as arrowdataset
 from pytz import timezone
+from string import Template
 from subprocess import run, PIPE
 from time import sleep
 from urllib.parse import urlparse
@@ -82,6 +83,10 @@ class load:
         if add:
             environ[var] = add
         return getenv(var) if load else var
+
+    @staticmethod
+    def string(string: str, values: dict):
+        return Template(string).substitute(values)
 
     @staticmethod
     def jsonEx(
