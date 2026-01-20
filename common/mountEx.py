@@ -20,7 +20,7 @@ class Arrow_Flight_RPC_Info:
     schema: _flight.SchemaResult
     rows: int
     size: int
-    ticket: _flight.Ticket = field(default=_flight.Ticket)
+    ticket: _flight.Ticket
     expiration_time: str = field(default='')
 
 @dataclass
