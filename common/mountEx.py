@@ -16,23 +16,23 @@ class Daylist:
     listen: int = field(default=1)
 
 @dataclass
+class Arrow_Flight_RPC_Info:
+    schema: _flight.SchemaResult
+    rows: int
+    size: int
+    ticket: _flight.Ticket = field(default=_flight.Ticket)
+    expiration_time: str = field(default='')
+
+@dataclass
 class Arrow_Flight_RPC_Conn:
     client: _flight.FlightClient
     authenticate: _flight.FlightCallOptions
     descriptor: _flight.FlightDescriptor
 
 @dataclass
-class Arrow_Flight_RPC_Info:
-    schema: _flight.SchemaResult = field(default=_flight.SchemaResult)
-    total_records: int = field(default=0)
-    total_bytes: int = field(default=0)
-    ticket: _flight.Ticket = field(default=_flight.Ticket)
-    expiration_time: str = field(default='')
-
-@dataclass
 class Arrow_Flight_RPC:
-    conn: Arrow_Flight_RPC_Conn
     info: Arrow_Flight_RPC_Info
+    conn: Arrow_Flight_RPC_Conn
 
 @dataclass
 class Event_Date:
