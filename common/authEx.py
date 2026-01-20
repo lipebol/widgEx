@@ -1,7 +1,6 @@
 from .loadEx import load, system
 from .httpEx import httpEx
 from .mountEx import mount
-from inspect import stack
 from pyarrow import flight
 from googleapiclient.discovery import build
 from google.oauth2 import service_account
@@ -84,11 +83,8 @@ class auth:
             if (
                 info := client.get_flight_info(
                     descriptor.for_command(
-                        command if (command := kwargs.get('command')) 
-                        else (
-                            command := load.variable('SELECT')
-                            % (kwargs.get('path'),'')
-                        )
+                        command if (command := kwargs.get('query'))
+                        else (command := load.string(load.variable('SELECT'), kwargs))
                     ), authenticate
                 )
             ) and (
