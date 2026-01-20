@@ -2,7 +2,7 @@ from .authEx import auth
 from .loadEx import load, system
 from .notifEx import notific
 import adbc_driver_postgresql.dbapi
-from pyarrow import _flight
+from pyarrow import table
 from pymongo import MongoClient
 from pymongoarrow.monkey import patch_all
 
@@ -27,16 +27,17 @@ class clickhouse:
 
     @staticmethod
     def select(*, database: str | None = None, **kwargs):
-        try:
-            if kwargs.get('query') or kwargs.get('table'):
-                if (flight := clickhouse.__connect(database, **kwargs)):
-                    return flight.conn.client.do_get(
-                        flight.info.ticket, flight.conn.authenticate
-                    ).read_all()
-            raise Exception('The query or table was not declared.')
-        except _flight.FlightServerError as error:
-            flight.info, flight.conn = str(error),''
-            return flight
+        if kwargs.get('query') or kwargs.get('table'):
+            if (flight := clickhouse.__connect(database, **kwargs)):
+                if not flight.info.rows:
+                    return table(
+                        {field:[] for field in flight.info.schema.names},
+                        schema=flight.info.schema
+                    )
+                return flight.conn.client.do_get(
+                    flight.info.ticket, flight.conn.authenticate
+                ).read_all()
+        raise Exception('The query or table was not declared.')
 
     @staticmethod
     def insert(path: str):
