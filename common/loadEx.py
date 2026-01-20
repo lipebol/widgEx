@@ -12,6 +12,7 @@ from pyarrow import dataset as arrowdataset
 from pytz import timezone
 from subprocess import run, PIPE
 from time import sleep
+from urllib.parse import urlparse
 from zipfile import ZipFile
 
 
@@ -176,6 +177,10 @@ class load:
     @staticmethod
     def info(_info: str) -> str:
         return info(_info)
+
+    @staticmethod
+    def uri(value: str):
+        return urlparse(value)
 
     @staticmethod
     def __caller(value: object):
