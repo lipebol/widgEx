@@ -73,32 +73,35 @@ class auth:
 
     
     @staticmethod
-    def arrowflightrpc(uri: str, action: str):
-        if (uri := load.uri(uri)) and (
+    def arrowflightrpc(uri: str, **kwargs):
+        if (uri := load.uri(system.decr(value=uri))) and (
             client := flight.FlightClient(f"{uri.scheme}://{uri.hostname}:{uri.port}")
         ) and (
-            auth := flight.FlightCallOptions(
+            authenticate := flight.FlightCallOptions(
                 headers=[client.authenticate_basic_token(uri.username,uri.password)]
             )
         ) and (descriptor := flight.FlightDescriptor):
             if (
                 info := client.get_flight_info(
                     descriptor.for_command(
-                        action if stack()[1].function != 'insert' 
-                        else load.variable('SELECT') % (action,'')
-                    ), auth
+                        command if (command := kwargs.get('command')) 
+                        else load.variable('SELECT') % (kwargs.get('path'),'')
+                    ), authenticate
+                )
+            ) and (
+                mountinfo := mount.data(
+                    schema=info.schema, rows=info.total_records, size=info.total_bytes
                 )
             ):
-                mountinfo = mount.data(
-                    schema=info.schema, total_records=info.total_records, 
-                    total_bytes=info.total_bytes, classname='Arrow_Flight_RPC_Info'
-                )
                 if info.endpoints:
                     for endpoint in info.endpoints:
                         mountinfo.ticket = endpoint.ticket
                         mountinfo.expiration_time = endpoint.expiration_time
+                if kwargs.get('info'):
+                    return mountinfo
                 return mount.data(
-                    conn=mount.data(
-                        client=client, authenticate=auth, descriptor=descriptor
-                    ), info=mountinfo
+                    info=mountinfo, conn=mount.data(
+                        client=client, authenticate=authenticate, descriptor=descriptor
+                    )
                 )
+        raise Exception('')
