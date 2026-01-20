@@ -85,12 +85,16 @@ class auth:
                 info := client.get_flight_info(
                     descriptor.for_command(
                         command if (command := kwargs.get('command')) 
-                        else load.variable('SELECT') % (kwargs.get('path'),'')
+                        else (
+                            command := load.variable('SELECT')
+                            % (kwargs.get('path'),'')
+                        )
                     ), authenticate
                 )
             ) and (
                 mountinfo := mount.data(
-                    schema=info.schema, rows=info.total_records, size=info.total_bytes
+                    schema=info.schema, rows=info.total_records,
+                    size=info.total_bytes, ticket=flight.Ticket(command)
                 )
             ):
                 if info.endpoints:
