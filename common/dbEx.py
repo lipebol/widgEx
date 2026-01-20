@@ -10,15 +10,26 @@ from pymongoarrow.monkey import patch_all
 class clickhouse:
 
     @staticmethod
-    def __connect(**kwargs):
+    def setconfig(database: str | None = None):
+        config.setdbname('CLICKHOUSE_DB', database)
+        return config.envs()
+
+    @staticmethod
+    def getdbname(database: str | None) -> str:
+        if (database := database or load.variable('CLICKHOUSE_DB')):
+            return database
+        raise Exception('The database was not declared.')
+
+    @staticmethod
+    def __connect(database: str | None, **kwargs):
+        kwargs['default'] = clickhouse.getdbname(database) ### <-- to env 'SELECT'
         return auth.arrowflightrpc(load.variable('CLICKHOUSE_URI'), **kwargs)
 
     @staticmethod
-    def select(*, query: str | None = None, table: str | None = None, params: str = ''):
+    def select(*, database: str | None = None, **kwargs):
         try:
-            if query or table:
-                command = query if query else load.variable('SELECT') % (table,params)
-                if (flight := clickhouse.__connect(command=command)):
+            if kwargs.get('query') or kwargs.get('table'):
+                if (flight := clickhouse.__connect(database, **kwargs)):
                     return flight.conn.client.do_get(
                         flight.info.ticket, flight.conn.authenticate
                     ).read_all()
@@ -37,49 +48,33 @@ class clickhouse:
 
     @staticmethod
     def info(command: str):
-        if (flight := clickhouse.__connect(command=command,info=True)):
+        if (flight := clickhouse.__connect(command=command, info=True)):
             return flight
 
 
 class postgresql:
- 
+
+    @staticmethod
+    def setconfig(database: str | None = None):
+        config.setdbname('POSTGRESQL_DB', database)
+        return config.envs()
+
+    @staticmethod
+    def getdbname(database: str | None) -> str:
+        if (database := database or load.variable('POSTGRESQL_DB')):
+            return database
+        raise Exception('The database was not declared.')
+
     @staticmethod
     def __connect(database: str | None):
         return adbc_driver_postgresql.dbapi.connect(
             system.decr(value=load.variable('POSTGRESQL_URI')) % 
-            {'db': postgresql.isdb(database)}, autocommit=True
+            {'db': config.getdbname(database)}, autocommit=True
         ).cursor()
 
     @staticmethod
-    def sizedb(target: str, *, database: str | None = None):
-        if len((target := target.lower().split())) == 2:
-            with postgresql.__connect(
-                (database := postgresql.isdb(database))
-            ) as conn:
-                conn.execute(load.variable('SIZEDB') % database)
-                if (sizedb := "".join(conn.fetchone()).lower().split()):
-                    load.info(sizedb)
-                    if target[1] == sizedb[1] and int(target[0]) <= int(sizedb[0]):
-                        raise Exception('The specified target was hit.')
-                return True
-        raise Exception('Please specify the desired limit in the format: <size> <unit>')
-    
-    @staticmethod
-    def isdb(database: str | None) -> str:
-        if (database := database or load.variable('POSTGRESQL_DB')):
-            return database
-        raise Exception('The database was not declared.')
-    
-    @staticmethod
-    def columns(schema: str, *, table: str, database: str | None = None) -> list:
-        if schema and table:
-            with postgresql.__connect(database) as conn:
-                conn.execute(load.variable('SELECT') % (schema,table,''))
-                return [column[0] for column in conn.description]
-
-    @staticmethod
     def select(
-        schema: str, *,  table: str, params='', 
+        schema: str, *,  table: str, params: str = '', 
         database: str | None = None
     ):
         if schema and table:
@@ -114,21 +109,44 @@ class postgresql:
         load.info("No data was found to insert.")
 
     @staticmethod
-    def setconfig(database: str | None = None):
-        config.db('POSTGRESQL_DB', database)
-        return config.envs()
+    def columns(schema: str, *, table: str, database: str | None = None) -> list:
+        if schema and table:
+            with postgresql.__connect(database) as conn:
+                conn.execute(load.variable('SELECT') % (schema,table,''))
+                return [column[0] for column in conn.description]
+
+    @staticmethod
+    def sizedb(target: str, *, database: str | None = None):
+        if len((target := target.lower().split())) == 2:
+            with postgresql.__connect(database) as conn:
+                conn.execute(load.variable('SIZEDB') % config.getdbname(database))
+                if (sizedb := "".join(conn.fetchone()).lower().split()):
+                    load.info(sizedb)
+                    if target[1] == sizedb[1] and int(target[0]) <= int(sizedb[0]):
+                        raise Exception('The specified target was hit.')
+                return True
+        raise Exception('Please specify the desired limit in the format: <size> <unit>')
 
 
 class mongodb:
+
+    @staticmethod
+    def setconfig(database: str | None = None):
+        config.setdbname('MONGODB_DB', database)
+        return config.envs()
+
+    @staticmethod
+    def getdbname(database: str | None) -> str:
+        if (database := database or load.variable('MONGODB_DB')):
+            return database
+        raise Exception('The database was not declared.')
 
     @staticmethod
     def connect(database: str, collection: str):
         patch_all()
         return MongoClient(
             system.decr(value=load.variable('MONGODB_URI'))
-        ).get_database(
-            database if database else load.variable('MONGODB_DB')
-        ).get_collection(collection)
+        ).get_database(mongodb.getdbname(database)).get_collection(collection)
 
     @staticmethod
     def select(
@@ -153,17 +171,11 @@ class mongodb:
         if not many:
             return mongodb.connect(database, collection).insert_one(data).inserted_id
     
-    @load.quiet
-    @staticmethod
-    def setconfig(database: str | None = None):
-        config.db('MONGODB_DB', database)
-        return config.envs()
-
 
 class config:
 
     @staticmethod
-    def db(env: str, database: str | None = None) -> list:
+    def setdbname(env: str, database: str | None) -> list:
         if database:
             return load.variable(env, add=database)
 
