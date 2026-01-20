@@ -1,8 +1,33 @@
+from .authEx import auth
 from .loadEx import load, system
 from .notifEx import notific
 import adbc_driver_postgresql.dbapi
 from pymongo import MongoClient
 from pymongoarrow.monkey import patch_all
+
+
+class clickhouse:
+
+    @staticmethod
+    def __connect(**kwargs):
+        return auth.arrowflightrpc(load.variable('CLICKHOUSE_URI'), **kwargs)
+
+    @staticmethod
+    def select(command: str):
+        if (flight := clickhouse.__connect(command=command)):
+            flight.conn.descriptor = flight.conn.descriptor.for_command(command)
+            return flight
+
+    @staticmethod
+    def insert(path: str):
+        if (flight := clickhouse.__connect(path=path)):
+            flight.conn.descriptor = flight.conn.descriptor.for_path(path)
+            return flight
+
+    @staticmethod
+    def info(command: str):
+        if (flight := clickhouse.__connect(command=command,info=True)):
+            return flight
 
 
 class postgresql:
@@ -30,7 +55,7 @@ class postgresql:
     
     @staticmethod
     def isdb(database: str | None) -> str:
-        if (database := database or load.variable('POSTGRESQL_DEFAULT')):
+        if (database := database or load.variable('POSTGRESQL_DB')):
             return database
         raise Exception('The database was not declared.')
     
@@ -48,11 +73,11 @@ class postgresql:
     ):
         if schema and table:
             with postgresql.__connect(database) as conn:
-                conn.execute(load.variable('SELECT') % (schema,table,params))
+                conn.execute(load.variable('SELECT') % (f"{schema}.{table}",params))
                 return conn.fetch_arrow_table()
 
     @staticmethod
-    def adbc(
+    def insert(
         schema: str, *, table: str, data: object,
         return_id: bool = True, database: str | None = None
     ):
@@ -79,7 +104,7 @@ class postgresql:
 
     @staticmethod
     def setconfig(database: str | None = None):
-        config.db('POSTGRESQL_DEFAULT', database)
+        config.db('POSTGRESQL_DB', database)
         return config.envs()
 
 
@@ -91,7 +116,7 @@ class mongodb:
         return MongoClient(
             system.decr(value=load.variable('MONGODB_URI'))
         ).get_database(
-            database if database else load.variable('MONGODB_DEFAULT')
+            database if database else load.variable('MONGODB_DB')
         ).get_collection(collection)
 
     @staticmethod
@@ -120,7 +145,7 @@ class mongodb:
     @load.quiet
     @staticmethod
     def setconfig(database: str | None = None):
-        config.db('MONGODB_DEFAULT', database)
+        config.db('MONGODB_DB', database)
         return config.envs()
 
 
