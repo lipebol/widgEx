@@ -2,6 +2,7 @@ from .authEx import auth
 from .loadEx import load, system
 from .notifEx import notific
 import adbc_driver_postgresql.dbapi
+from pyarrow import _flight
 from pymongo import MongoClient
 from pymongoarrow.monkey import patch_all
 
@@ -13,15 +14,25 @@ class clickhouse:
         return auth.arrowflightrpc(load.variable('CLICKHOUSE_URI'), **kwargs)
 
     @staticmethod
-    def select(command: str):
-        if (flight := clickhouse.__connect(command=command)):
-            flight.conn.descriptor = flight.conn.descriptor.for_command(command)
+    def select(*, query: str | None = None, table: str | None = None, params: str = ''):
+        try:
+            if query or table:
+                command = query if query else load.variable('SELECT') % (table,params)
+                if (flight := clickhouse.__connect(command=command)):
+                    return flight.conn.client.do_get(
+                        flight.info.ticket, flight.conn.authenticate
+                    ).read_all()
+            raise Exception('The query or table was not declared.')
+        except _flight.FlightServerError as error:
+            flight.info, flight.conn = str(error),''
             return flight
 
     @staticmethod
     def insert(path: str):
         if (flight := clickhouse.__connect(path=path)):
-            flight.conn.descriptor = flight.conn.descriptor.for_path(path)
+            writer, _ = flight.conn.client.do_put(
+                flight.conn.descriptor.for_path(path), flight.info.schema
+            )
             return flight
 
     @staticmethod
