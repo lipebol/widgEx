@@ -84,7 +84,11 @@ class auth:
                 info := client.get_flight_info(
                     descriptor.for_command(
                         command if (command := kwargs.get('query'))
-                        else (command := load.string(load.variable('SELECT'), kwargs))
+                        else (
+                            command := load.string(
+                                kwargs, template=load.variable('SELECT_ALL')
+                            )
+                        )
                     ), authenticate
                 )
             ) and (
@@ -97,11 +101,28 @@ class auth:
                     for endpoint in info.endpoints:
                         mountinfo.ticket = endpoint.ticket
                         mountinfo.expiration_time = endpoint.expiration_time
+                
                 if kwargs.get('info'):
                     return mountinfo
-                return mount.data(
+
+                arrowflightrpcdata = mount.data(
                     info=mountinfo, conn=mount.data(
                         client=client, authenticate=authenticate, descriptor=descriptor
-                    )
+                    ), extras=mount.data(classname='Arrow_Flight_RPC_Extras')
                 )
+
+                if kwargs.get('insert_command'):
+                    arrowflightrpcdata.extras.command = load.string(
+                        {
+                            **kwargs,
+                            'cols': load.string((cols := info.schema.names), join=True),
+                            'values': load.string(['?'] * len(cols), join=True),
+                        }, template=load.variable('INSERT_ALL')
+                    )
+                elif kwargs.get('insert_path'):
+                    arrowflightrpcdata.extras.path = load.string(
+                        kwargs, template=load.variable('FOR_PATH')
+                    )
+                    
+                return arrowflightrpcdata
         raise Exception('')
