@@ -2,12 +2,11 @@ from .authEx import auth
 from .loadEx import load, system
 from .notifEx import notific
 import adbc_driver_postgresql.dbapi
-from pyarrow import table
 from pymongo import MongoClient
 from pymongoarrow.monkey import patch_all
 
 
-class clickhouse:
+class ClickHouse:
 
     @staticmethod
     def setconfig(database: str | None = None):
@@ -22,38 +21,46 @@ class clickhouse:
 
     @staticmethod
     def __connect(database: str | None, **kwargs):
-        kwargs['default'] = clickhouse.getdbname(database) ### <-- to env 'SELECT'
+        if kwargs.get('query') and kwargs.get('table'):
+            raise Exception('Choose one of the two methods: "query" or "table".')
+        elif kwargs.get('table'):
+            kwargs['default'] = ClickHouse.getdbname(database) ### <-- to env 'SELECT_ALL'
         return auth.arrowflightrpc(load.variable('CLICKHOUSE_URI'), **kwargs)
-
+        
     @staticmethod
     def select(*, database: str | None = None, **kwargs):
         if kwargs.get('query') or kwargs.get('table'):
-            if (flight := clickhouse.__connect(database, **kwargs)):
+            if (flight := ClickHouse.__connect(database, **kwargs)):
                 if not flight.info.rows:
-                    return table(
-                        {field:[] for field in flight.info.schema.names},
-                        schema=flight.info.schema
-                    )
+                    return flight.info.schema.empty_table()
                 return flight.conn.client.do_get(
                     flight.info.ticket, flight.conn.authenticate
                 ).read_all()
-        raise Exception('The query or table was not declared.')
+        raise Exception('The "query" or "table" was not declared.')
 
     @staticmethod
-    def insert(path: str):
-        if (flight := clickhouse.__connect(path=path)):
-            writer, _ = flight.conn.client.do_put(
-                flight.conn.descriptor.for_path(path), flight.info.schema
-            )
-            return flight
+    def insert(*, database: str | None = None, **kwargs):
+        if (table := kwargs.get('table')):
+            config = {'insert_path': True, **kwargs}
+            if (flight := ClickHouse.__connect(database, **config)):
+                if (schema := kwargs.get('use_schema')):
+                    flight.info.schema = schema
+                writer, _ = flight.conn.client.do_put(
+                    flight.conn.descriptor.for_path(flight.extras.path), 
+                    flight.info.schema, flight.conn.authenticate
+                )
+                return writer
+        raise Exception('The "table" was not declared.')
 
     @staticmethod
-    def info(command: str):
-        if (flight := clickhouse.__connect(command=command, info=True)):
-            return flight
+    def info(*, database: str | None = None, **kwargs):
+        if kwargs.get('query') or kwargs.get('table'):
+            config = {'info': True, **kwargs}
+            return ClickHouse.__connect(database, **config)
+        raise Exception('The "query" or "table" was not declared.')
 
 
-class postgresql:
+class PostgreSQL:
 
     @staticmethod
     def setconfig(database: str | None = None):
@@ -79,8 +86,8 @@ class postgresql:
         database: str | None = None
     ):
         if schema and table:
-            with postgresql.__connect(database) as conn:
-                conn.execute(load.variable('SELECT') % (f"{schema}.{table}",params))
+            with PostgreSQL.__connect(database) as conn:
+                conn.execute(load.variable('SELECT_ALL') % (f"{schema}.{table}",params))
                 return conn.fetch_arrow_table()
 
     @staticmethod
@@ -93,14 +100,14 @@ class postgresql:
                 data, rows = data.to_batches(), data.count_rows()
             else:
                 rows = data.num_rows
-            with postgresql.__connect(database) as conn:
+            with PostgreSQL.__connect(database) as conn:
                 conn.adbc_ingest(
                     db_schema_name=schema, table_name=table, 
                     data=data, mode='append'
                 )
             load.info(f"Inserted {rows} rows in {schema}.{table}")
             if return_id:
-                return postgresql.select(
+                return PostgreSQL.select(
                     schema, table=table, 
                     params="WHERE id IN (%s)" % ",".join(
                         [f"'{id}'" for id in data.select(["id"]).to_pydict()['id']]
@@ -112,15 +119,15 @@ class postgresql:
     @staticmethod
     def columns(schema: str, *, table: str, database: str | None = None) -> list:
         if schema and table:
-            with postgresql.__connect(database) as conn:
-                conn.execute(load.variable('SELECT') % (schema,table,''))
+            with PostgreSQL.__connect(database) as conn:
+                conn.execute(load.variable('SELECT_ALL') % (schema,table,''))
                 return [column[0] for column in conn.description]
 
     @staticmethod
     def sizedb(target: str, *, database: str | None = None):
         if len((target := target.lower().split())) == 2:
-            with postgresql.__connect(database) as conn:
-                conn.execute(load.variable('SIZEDB') % config.getdbname(database))
+            with PostgreSQL.__connect(database) as conn:
+                conn.execute(load.variable('SIZEDB') % PostgreSQL.getdbname(database))
                 if (sizedb := "".join(conn.fetchone()).lower().split()):
                     load.info(sizedb)
                     if target[1] == sizedb[1] and int(target[0]) <= int(sizedb[0]):
@@ -129,7 +136,9 @@ class postgresql:
         raise Exception('Please specify the desired limit in the format: <size> <unit>')
 
 
-class mongodb:
+class MongoDB:
+
+    patch_all()
 
     @staticmethod
     def setconfig(database: str | None = None):
@@ -144,17 +153,16 @@ class mongodb:
 
     @staticmethod
     def connect(database: str, collection: str):
-        patch_all()
         return MongoClient(
             system.decr(value=load.variable('MONGODB_URI'))
-        ).get_database(mongodb.getdbname(database)).get_collection(collection)
+        ).get_database(MongoDB.getdbname(database)).get_collection(collection)
 
     @staticmethod
     def select(
         collection: str, *, database: str | None = None, 
         filter: dict = {}, fields: dict = {}, _id: bool = False
     ) -> list:
-        _db = mongodb.connect(database, collection)
+        _db = MongoDB.connect(database, collection)
         if not filter:
             if (data := _db.find_arrow_all({})):
                 return data.drop_columns('_id') if not _id else data
@@ -162,7 +170,7 @@ class mongodb:
 
     @staticmethod
     def update(collection: str, *, database: str | None = None, filter: dict, update: dict):
-        return mongodb.connect(database, collection).update_many(filter, { '$set' : update})
+        return MongoDB.connect(database, collection).update_many(filter, { '$set' : update})
 
     @staticmethod
     def insert(
@@ -170,7 +178,7 @@ class mongodb:
         data: dict, many: bool = False
     ):
         if not many:
-            return mongodb.connect(database, collection).insert_one(data).inserted_id
+            return MongoDB.connect(database, collection).insert_one(data).inserted_id
     
 
 class config:
@@ -189,7 +197,7 @@ class config:
                     raise Exception(error)
             else:
                 return envs
-        if (dataenv := mongodb.select('_envs', database='common').to_pylist()):
+        if (dataenv := MongoDB.select('_envs', database='common').to_pylist()):
             load.jsonEx(path=tmpfile, data=dataenv[0])
             return list(load.envs())
         raise Exception('Error load envs.')
