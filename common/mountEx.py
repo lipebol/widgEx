@@ -30,9 +30,15 @@ class Arrow_Flight_RPC_Conn:
     descriptor: _flight.FlightDescriptor
 
 @dataclass
+class Arrow_Flight_RPC_Extras:
+    command: str = field(default='')
+    path: str = field(default='')
+
+@dataclass
 class Arrow_Flight_RPC:
     info: Arrow_Flight_RPC_Info
     conn: Arrow_Flight_RPC_Conn
+    extras: Arrow_Flight_RPC_Extras
 
 @dataclass
 class Event_Date:
