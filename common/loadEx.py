@@ -85,8 +85,11 @@ class load:
         return getenv(var) if load else var
 
     @staticmethod
-    def string(string: str, values: dict):
-        return Template(string).substitute(values)
+    def string(values: dict | list, *, template: str | None = None, join: bool = False):
+        if join and isinstance(values, list):
+            return ', '.join(values)
+        elif template and isinstance(values, dict):
+            return Template(template).substitute(values)
 
     @staticmethod
     def jsonEx(
