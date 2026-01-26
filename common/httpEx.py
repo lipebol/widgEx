@@ -8,21 +8,25 @@ class httpEx:
     @staticmethod
     def response(func):
         def wrapper(**kwargs):
-            if (url := kwargs.get('url')):
-                load.info(f"Requesting... ({url})")
-                __headers = {'User-Agent': load.variable('HEADERS')}
-                if (__addheaders := kwargs.get('headers')):
-                    __headers = {**__headers, **__addheaders}
-                if (
-                    response := get(
-                        url, params=kwargs.get('params'), timeout=60, headers=__headers
-                    ) if not (data := kwargs.get('data')) 
-                    else post(url, data=data, headers=__headers, timeout=60)
-                ).status_code == 200:
-                    kwargs['response'] = response
-                    return func(**kwargs)
-                raise Exception(response.status_code, response.text)
-            raise Exception('URL?')
+            try:
+                if (url := kwargs.get('url')):
+                    load.info(f"Requesting... ({url})")
+                    __headers = {'User-Agent': load.variable('HEADERS')}
+                    if (__addheaders := kwargs.get('headers')):
+                        __headers = {**__headers, **__addheaders}
+                    if (
+                        response := get(
+                            url, params=kwargs.get('params'), timeout=60, headers=__headers
+                        ) if not (data := kwargs.get('data')) 
+                        else post(url, data=data, headers=__headers, timeout=60)
+                    ).status_code == 200:
+                        kwargs['response'] = response
+                        return func(**kwargs)
+                    raise Exception(response.status_code, response.text)
+                raise Exception('URL?')
+            except Exception as error:
+                load.info(error)
+                return False
         return wrapper
     
 
@@ -73,4 +77,10 @@ class httpEx:
             ):
                 load.jsonEx(path=tmpfile, data={'ip': ipadress})
             return load.jsonEx(path=tmpfile).get('ip') == ipadress
+
+    @response
+    @staticmethod
+    def connection(**kwargs):
+        return kwargs.get('response')
+    
         
