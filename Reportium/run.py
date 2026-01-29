@@ -7,7 +7,7 @@ from FreeSimpleGUI import WIN_CLOSED
 
 class app:
 
-    # @notific.exception
+    @notific.exception
     @staticmethod
     def run():
         if reportium.dir():
