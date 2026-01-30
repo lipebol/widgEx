@@ -1,5 +1,8 @@
 from .loadEx import load
+from aiohttp import ClientTimeout
 from bs4 import BeautifulSoup
+from gql import Client, gql
+from gql.transport.aiohttp import AIOHTTPTransport
 from requests import get, post
 
 class httpEx:
@@ -63,6 +66,22 @@ class httpEx:
         ) as handler:
             handler.write(kwargs.get('response').content)
         load.info(str(savein))
+
+    @staticmethod
+    def graphql(**kwargs):
+        if (url := kwargs.get('url')) and (query := kwargs.get('query')):
+            return list(
+                dict(
+                    Client(
+                        transport=AIOHTTPTransport(
+                            url=url, client_session_args={
+                                'timeout': ClientTimeout(total=300)
+                            }
+                        )
+                    ).execute(gql(query))
+                ).values()
+            )[0]
+        raise Exception('')
         
     @staticmethod
     def checkIP(**kwargs):
@@ -77,10 +96,5 @@ class httpEx:
             ):
                 load.jsonEx(path=tmpfile, data={'ip': ipadress})
             return load.jsonEx(path=tmpfile).get('ip') == ipadress
-
-    @response
-    @staticmethod
-    def connection(**kwargs):
-        return kwargs.get('response')
     
         
