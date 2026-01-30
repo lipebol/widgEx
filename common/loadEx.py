@@ -7,6 +7,7 @@ import json
 from logging import basicConfig, info, INFO
 from os import environ, getenv, path, remove
 from pathlib import Path
+import platform
 from pyarrow import csv as arrowcsv
 from pyarrow import dataset as arrowdataset
 from pytz import timezone
@@ -43,16 +44,6 @@ class load:
             return False
 
     @staticmethod
-    def schemadb():
-        if (
-            schemadb := load.variable(
-                ''.join([load.__caller(currentframe().f_back).upper(),'SCHEMADB'])
-            )
-        ): 
-            return schemadb
-        raise Exception('The database schema was not declared.')
-
-    @staticmethod
     def quiet(func):
         def wrapper(*args, **kwargs):
             sleep(1)
@@ -60,22 +51,20 @@ class load:
         return wrapper
 
     @staticmethod
-    def path(path: str | None = None, *, join: list | str | None = None) -> Path:
-        path = Path(path) if path else Path.cwd()
+    def path(
+        path_: str | None = None, *,
+        join: list | str | None = None,
+        user: bool = False
+    ) -> Path:
+        path_ = Path(path_) if path_ else path.expanduser('~') if user else Path.cwd()
         if join:
             if isinstance(join, str):
                 join = [join]
-            return path.joinpath(*join)
-        return path
+            return path_.joinpath(*join)
+        return path_
 
     @staticmethod
-    def dirdownloads(dirname: str | None = None):
-        if (dirname := dirname or load.__caller(currentframe().f_back)):
-            return load.path(join=['common', '.downloads', dirname])
-        raise Exception('The downloads directory was not found.')
-
-    @staticmethod
-    def checkpath(_path: str, *, dir: str | bool = False) -> bool:
+    def checkpath(_path: str) -> bool:
         return path.exists(_path)
 
     @staticmethod
@@ -196,6 +185,10 @@ class load:
 
 
 class system:
+
+    @staticmethod
+    def shell(command: str):
+        return run(command, shell=True, stdout=PIPE, text=True).stdout.strip()
     
     @staticmethod
     def dbus(
@@ -217,13 +210,23 @@ class system:
         except Exception as error:
             load.info(error)
 
-    def __shell(self, command: str):
-        return run(command, shell=True, stdout=PIPE, text=True).stdout.strip()
+    @staticmethod
+    def screen(window_sizes: list) -> object:
+        for screen_size, window_size in zip(
+            [
+                int(size.split()[1]) if "\n" in size else int(size) for size in [
+                    system.shell(command) for command in load.variable(
+                        f'REPORTIUM_{system._os().upper()}_SCREEN'
+                    ).split(';')
+                ]
+            ], window_sizes):
+                yield int(screen_size * window_size)
+                yield (screen_size - int(screen_size * window_size)) // 2
 
     @staticmethod
     def encr(*, variable: str | None = None, value: str | None = None):
         if (load_encr := load.variable('TX808FBP22QE2QTTK')):
-            return system().__shell(
+            return system.shell(
                 load_encr % {
                     "arg": value or f"${variable}",
                     "tangserver": load.variable('TANGSERVERIP') # set in ".env"
@@ -234,11 +237,15 @@ class system:
     @staticmethod
     def decr(*, variable: str | None = None, value: str | None = None):
         if (load_decr := load.variable('A7S6I002TMK6SUT5W')): # set in "/etc/environment"
-            return system().__shell(load_decr % {"arg": value or f"${variable}"})
+            return system.shell(load_decr % {"arg": value or f"${variable}"})
         raise Exception(load_decr)
+
+    @staticmethod
+    def _os():
+        return platform.system()
 
     @staticmethod
     def notifysend(*, title: str = 'WARNING!', message: str):
         if (notify := load.variable('NOTIFY_SEND')):
-            return system().__shell(notify % (f'''"👉 {title} 👈\n\n""{message}"'''))
+            return system.shell(notify % (f'''"👉 {title} 👈\n\n""{message}"'''))
         raise Exception(notify)
