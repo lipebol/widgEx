@@ -95,10 +95,10 @@ class uiall:
 class uidates:
 
     @staticmethod
-    def calendar(id: str) -> list:
+    def calendar(id: str, location: tuple) -> list:
         return [ 
             CalendarButton(
-                '➤',no_titlebar=True, locale='pt_BR', begin_at_sunday_plus=1,
+                '➤', locale='pt_BR', begin_at_sunday_plus=1, location=location,
                 close_when_date_chosen=True, target=id, format='%d/%m/%Y',  
                 month_names=(
                     'Janeiro','Fevereiro','Março','Abril','Maio','Junho', 
@@ -123,8 +123,12 @@ class uidates:
                         Column([[Text('  Data Final  ', font=('Courier', 13))]])
                     ],
                     [
-                        Text(' '), Column([uidates.calendar('start_date')]), 
-                        Text('      '), Column([uidates.calendar('end_date')])
+                        Text(' '), Column(
+                            [uidates.calendar('start_date', (screen[1], screen[3]))]
+                        ),
+                        Text('      '), Column(
+                            [uidates.calendar('end_date', (screen[1]*2, screen[3]))]
+                        )
                     ],
                     [Text('')], [Button('Enviar', font='Courier', bind_return_key=True)]
                 ], size=(screen[0], screen[2]), grab_anywhere=True, alpha_channel=.9, 
