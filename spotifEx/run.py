@@ -1,6 +1,6 @@
 from bson.objectid import ObjectId
 from common.authEx import auth
-from common.dbEx import mongodb
+from common.dbEx import MongoDB
 from common.loadEx import load, system
 from common.mountEx import mount
 from common.notifEx import notific
@@ -17,22 +17,22 @@ class init:
     def genres(genre: dict, collection='genres') -> str:
         if isinstance(genre, dict):
             return find[0].get('_id') if (
-                find := mongodb.select(
+                find := MongoDB.select(
                     collection, filter=genre, fields={'_id': 1}
                 )
-            ) else mongodb.insert(collection, data=genre)
+            ) else MongoDB.insert(collection, data=genre)
 
     @staticmethod
     def artists(artists: list) -> object:
         for artist in artists:
             if (genres := artist.get('genres')):
                 artist['genres'] = list(map(init.genres, genres))
-            yield mongodb.insert('artists', data=artist) if not (
+            yield MongoDB.insert('artists', data=artist) if not (
                 id := artist.get('id')) else ObjectId(id)
                 
     @staticmethod
     def markets(available_markets: list) -> object:
-        ISO_3166_1 = mongodb.select('ISO_3166-1', database='common', _id=True)
+        ISO_3166_1 = MongoDB.select('ISO_3166-1', database='common', _id=True)
         for join_type in ['right outer','left anti']:
             yield ISO_3166_1.join(
                 arrow.Table.from_arrays(
@@ -46,7 +46,7 @@ class init:
             album['available_markets'], album['no_available_markets'] = tuple(
                 init.markets(album.get('available_markets'))
             )
-        return mongodb.insert('albums', data=album) if not (
+        return MongoDB.insert('albums', data=album) if not (
             id := album.get('id')) else ObjectId(id)
             
     @staticmethod
@@ -54,7 +54,7 @@ class init:
         if isinstance(track, dict):
             if (track := track.get('id')):
                 if (
-                    find := mongodb.select(
+                    find := MongoDB.select(
                         collection, filter=(
                             daylistfilter := {
                                 'date': load.now(all=False), 'track': track
@@ -62,11 +62,11 @@ class init:
                         ), fields={'listen': 1, '_id': 0}
                     )
                 ):
-                    return mongodb.update(
+                    return MongoDB.update(
                         collection, filter=daylistfilter, 
                         update={'listen': find[0].get('listen')+1}
                     )
-        return mongodb.insert(
+        return MongoDB.insert(
             collection, data=mount.data(track=track, date=load.now(all=False))
         )
 
@@ -77,14 +77,14 @@ class init:
             if not track.get('id'):
                 track['artists'] = list(init.artists(track.get('artists')))
                 track['album'] = init.album(track.get('album'))
-                track = str(mongodb.insert('tracks', data=track))
+                track = str(MongoDB.insert('tracks', data=track))
             return init.daylist(track)
         load.info(error)
 
     @notific.exception
     @staticmethod
     def run(trackid: str):
-        if mongodb.setconfig((widgEx := load.widgex())):
+        if MongoDB.setconfig((widgEx := load.widgex())):
             if (metadata := init.metadata(widgEx)):
                 if (newtrackid := metadata.get('trackid')) != trackid:
                     if '/com/spotify/ad/' not in newtrackid:
