@@ -16,6 +16,13 @@ class Daylist:
     listen: int = field(default=1)
 
 @dataclass
+class DivvyBikes_Files:
+    filename: str
+    last_modified: str
+    id: str
+    size: str
+
+@dataclass
 class Arrow_Flight_RPC_Info:
     schema: _flight.SchemaResult
     rows: int
