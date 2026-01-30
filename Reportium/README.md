@@ -2,7 +2,7 @@
         Reportium
 </h1>
 
-<img src="https://res.cloudinary.com/dfph6kr4e/image/upload/v1769748908/_reportium.gif"/>
+<img src="https://res.cloudinary.com/dfph6kr4e/image/upload/v1769749451/reportium_.jpg"/>
 
 ## :bulb: Autor
 
